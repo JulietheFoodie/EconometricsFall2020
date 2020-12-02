@@ -1,0 +1,330 @@
+---
+title: "Term Paper_GP2_Abraham Alhomadi, Julie Norman, and Keaton Manwaring"
+output: html_document
+---
+
+
+
+In this paper, we will undertake an econometric examination using the Crime1 dataset in the Wooldrige Package. The dataset contain a total of 2725 observations on 16 distinct variables.It was collected in 1986, in the State of California. Looking at the data, we will aspire to answer the following research question that is the focus of this paper: "How does an individual's income affect average sentencing outcome when they commit a crime? This question has been the subject of policy research for decades and, using the Crime1 dataset, we would like to contribute to the conversation on this issue of economics and criminal justice reform. Our belief as citizens is that we have a collective responsibility to promote better policies and the well-being of our nation through the efficient and just allocation of resources and ensuring that our criminal justice system is in fact "just" in its treatment of citizens who are convicted of a crime. In addition to our focus research question, we will investigate other equally critical questions, some of which include,"Does a person's employment status increase or decrease average sentencing?", " Do blacks get different average sentence lengths than nonblacks?",  and "how does an individual's prior criminal history, if any, contribute to their average sentencing length?". 
+
+Now, to carry out our investigation, we will regress our dependent variable "avgsen", which is the average sentence length of a convicted criminal, on variant explanatory variables: inc86 (legal income), nfarr86 (felony arrests), pcnv (proportion of prior convictions), durat (recent unemp duration), narr86(times arrested), Black, and Hispanic. Our multiregression model would start with the following model and build on from there to test for interaction between variables and to reflect for possible increase or decrease in sentencing length in the short- and long-term. This is our original regression model:
+
+                        Avgsen= inc86 + nfarr86 + narr86 + pcnn + durat + black + Hisanic. 
+
+The additional questions will help put our focus question in perspective, and allow us to identify alternative explanations besides an individual's income to why average sentencing length would differ from one person to another, given variables like employment status, criminal history, and race. 
+
+
+Lastly, for so long, policy makers have been trying to answer the above questions in order to improve economic and criminal justice policy making. They endeavor to identify our criminal justice system flaws and seek to address them, including issues like sentencing discrimination on the basis of income and race, and to improve the efficient and fair allocation of economic resources to all their citizens. This is an interesting economic inquiry, for it touches the heart of one of the challenges that has engulfed our nation. A stable and functioning economic system and a fair criminal justice system are important to maintaining a healthy life style, public safety to guard against social division because of discriminatory economic and criminal justice motives, and to promote a flourishing, economically strong country in the 21st century. For this reason, we are seeking to investigate whether average sentencing in, say, California or other states for that matter, are rendered based on effective, just, and fair laws, or are there discriminatory motives that impact our justice system rendering of sentencing. If discrimination does exist, then as citizens, we have a solemn obligation to put forth facts backed up by objective data and partake in making our country, as our founding fathers envisioned, a "more perfect union." 
+
+Our Crime1 dataset is included in the wooldridge package. We did not collect the data on our own nor do we know precisely how the data was collected. However, we know that the data it contains was collected in the State of California and the arrests data are for the year 1986. The observations reflect men who were born in 1960 or 1961, and the subject men in the dataset all had criminal history and a minimum of one arrest before 1986. So, our regression model (Avgsen= inc86 + nfarr86 + narr86 + pcnn + durat + black + Hisanic) will provide a multidimensional analysis to explain whether our independent variables listed do or do not have a causal relationship with our dependent variable, Avgsen. We wanted to include gender as a dummy variable in our regression model, but the dataset only contains data on men. Therefore, instead of looking at the relationship between gender and average sentencing, we will dwell on race and average sentencing. 
+
+Below is a summary statistics of our regression variables:
+
+```{r}
+install.packages("tidyverse")
+install.packages("effects")
+install.packages("corrgram")
+install.packages("lmtest")
+
+
+library (wooldridge)
+library(dplyr)
+df <-  crime1
+
+summary (df)
+
+```
+
+For illustrative purposes, below we include the histogram charts of our variables:
+
+```{r}
+library(dplyr)
+hist(df$avgsen, col = "red")
+hist(df$inc86, col = "blue")
+hist(df$nfarr86, col = "green")
+hist(df$narr86, col = "purple")
+hist(df$pcnv, col = "orange")
+hist(df$durat, col = "yellow")
+hist(df$black, col = "gray")
+hist(df$hispan, col = "dark green")
+```
+
+
+Our true model that we will be examining to compute our estimated coefficients using R Programming Language is the following:
+
+                                      Avgsen= inc86 + nfarr86 + narr86 + pcnn + durat + black + Hisanic+ u          (True Model)
+                                      
+                                      Avgsen^= inc86^ + nfarr86^ + narr86^ + pcnn^ + durat^ + black^ + Hisanic^ (estimated model) 
+                                     
+                                      
+We like to point out that we will be using Ordinary Least Square (OLS) estimating method to compute the coefficients of our variables. Our model complies with all of OLS multiple regression assumptions. That is, our regression model is linear in parameters, the sampling of the observations was undertaken randomly, the variance of our independent variables is greater than zero (Var(x) > 0), the expected value of our unobserved variables given our observed explanatory variables is zero (E(u|x)=0), the variance of our unobserved variables given our observed explanatory variables is constant (Var(u|x=constant)), and the population error (u) is normally distributed with zero mean and variance u ~(Normal (0,σ^2)).Having met the above assumptions, we will run several regression models to ensure that we are actually in compliance with these assumptions. 
+
+As of this point, we are assuming that the distribution of our data is homoskedastic, consistent with assumption five. But this assumption does not necessarily hold, so we will use a different estimation technique like Weighted Least Square (WLS), or the heteroskedasticity robust method. But, before going there, we will start with the OLS estimation technique and build our case for which technique is best for our dataset and regression output. Now, let's start with running our first regression model using OLS: 
+
+```{r}
+install.packages("stargazer")
+library(stargazer)
+library(corrgram)
+df <- select(df, c(avgsen, inc86, nfarr86, narr86, pcnv, durat, black, hispan))
+
+df0_reg <- lm(avgsen ~ inc86, df)
+df1_reg <- lm(avgsen ~ inc86 + nfarr86 + narr86 + pcnv + durat + black + hispan, df)
+stargazer(df0_reg, df1_reg, type = "text")
+summary(df1_reg)
+
+# Looking at the correlogram and our explanatory variables correlation with dependent variable:
+
+corrgram(df, order=TRUE, lower.panel=panel.shade, upper.panel=panel.pie, text.panel=panel.txt,main="Correlations between variables")
+
+```
+
+From our first regression model, we could view our coefficients and began by exploring key statistical components before interpretation. In the first model, we regressed average sentence on income as the only explanatory variable. Looking at the correlations chart, we see that income and average sentence have a negative yet very small correlation, which is expected. Looking at the first model, our income coefficient reads as, when income increases by $100, average sentence decreases by .005 months (if we multiply the income coefficient by 100,000, then on average we could say that a $100,000 increase in income, on average leads to a decrease in average sentence by 5 months). Now, in the first model, the R squared and adjusted R squared are very small, which is understandable given the small correlation between income and average sentence. Finally, even though the correlation is small, it is interesting to see that the income coefficient is statistically significant at the 1% significance level.
+
+Now, looking at model 2, First, we see that from our seven independent variables, three are statistically significant, as indicated by the three stars. These variables are inc86, hispan, and black, and their significance varies based on the number of stars it is given. To illustrate, from the regression, we see that inc86 is statistically significant at the 1% level and it has a small t-value of 3.94 (.004/.001= 4). The critical value at the 1% is 2.58, therefore our variable inc86 is demonstrably statistically significant. It's important to note that when we say that a variable has a large t-value, we are assuming that the t-value is greater than the critical value given the significance level and the p-value is very small, therefore it comes without mentioning in this paper.  
+
+In addition, looking at the variable pcnv, we see that it is significant at the 10% significance level. It has a small t-value of 1.69, but which remain significant at the 10% level, but not more than that. The variable black is statistically significant as indicated by the three star (proof of a small p-value) and it has a large t-value of 6.04. Likewise, the variable hispan is statistically significant but at the 5% significance level. This is also displayed by the two stars and its somewhat large t-value of 2.03. Our other variables--nfarr86, narr86, and durat are not statistically significant, as they have small t-values and large-p-values. However, we cannot yet rule out the possible fact that they may be collectively significant. So, later in this paper, we will test them for joint significance and report the results. From our regression model, we could also glean that the R square(R2) is 2.3%, which is very small. This small percent tells us how much of the variance our dependent variable avgsen is explained by all of our independent variable. A better goodness of fit measure is the adjusted R squared, which is 2.1%. It penalizes a regression model when another variable is added to it. Nonetheless, both the R squared and adjusted R squared are very small, which is expected given the small correlation between most of our variables and the dependent variable. Our model's degrees of freedom is 2717 and our F statistic is 9.265. 
+
+Next, we will interpret our regression coefficients.When interpreting our coefficients separetely, we are holding other variables fixed. First, looking at inc86, it tells us that a $100,000 increase in income, on average, leads to a decrease in average sentencing by 4 months. This is expected, as we know that people with higher income may be able to afford to hire a private attorney than getting a publicly appointed one, or they could higher a better trained private attorney. This coefficient is statistically significant at the 1% significance level. Next, we see nfarr86 coefficient and it says that one more felony arrest, on average, leads to a decrease in average sentencing by .137. This result is unexpected, because one would suppose that an increase in felony arrest would lead to an increase in average sentencing. But, the coefficient is statistically insignificant, therefore it is not necessarily a reliable one. Third is narr86, which says that one more arrest would led to an increase in average sentencing by .061. This is expected, but the coefficient is not statistically significant. Then, we have pcnv, which says that as the proportion of prior convictions increases by one unit, on average we would expect average sentencing to increase by .286. This is also expected and the coefficient is statistically significant. Then, we have durat and it says that as the duration of unemployment increases by one unit, we would expect average sentencing to decrease by .005. This is ironic, given that you would expect a person with a criminal history to commit a crime as unemployment duration increases and in effect increase average sentencing for commiting more crime. However, this coefficient is statistically insignificant. Next, we have the dummy variable black. It says that, on average, blacks' average sentencing is higher than nonblacks, not including hispanics, by 1.153. The coefficient is statistically significant. Lastly, we have another dummy variable hispan, which says that, on average, hispanics average sentencing is .338 higher than non-hispanic, not including blacks. It is also statistically significant. 
+
+Provided that three out of our seven explanatory variables are statiscially insignificant, we will test to see if they are jointly sigificant using the f-statistic testing method. We will also run our original regression but will drop those three variabls to see if our R squared and adjusted R squared are going to change or not, and to see if the significance level and coefficients of the other variables will change:
+
+
+
+```{r}
+library(car)
+df1_reg_joint <- lm(avgsen ~ inc86  + pcnv + black + hispan, df)
+stargazer(df1_reg, df1_reg_joint, type="text")
+
+Ho_joint <- c("nfarr86=0", "narr86=0", "durat=0")
+linearHypothesis(df1_reg, Ho_joint)
+```
+
+
+After dropping the three variables, we could glean the following from the results: First, the R squared remained unchanged and  our adjusted R squared experienced a very slight change of .001, which is small nonetheless. It does make the regression explanation of dependent variable better. Second, the coefficients of variables that remained in our regression are statistically significant at the same level. We did see a slight change in the black coefficient, which dropped from 1.153 to 1.139. PCNV went up from .286 to .290, and inc86 remained unchanged. Hispan went up from .338 to .341. 
+
+Before we continue on to other regression interpretation and hypothesis testing, we are going to test our variables for multicollinearity by regressing each independent variable on other independent variables in the model. We will use the inflation variance factor(VIF) for the testing. Using a VIF of 10 as a threshold, if a regression renders a number higher than 10, then it is generally indicative of a high multicolleanrity between the regressor variable and the regressed variables. We would then have the option of dropping it or keeping it. The caveat is, so long as there is not a perfect multicollinearity, then we would not violate assumption three of Gauss–Markov assumptions. If we drop a relevant variable--one that is correlated to the dependent variable and another independent variable, then we will end up with a low variance but biased coefficient. So, we could tolerate a coefficient with a high variance but not one that is biased. Therefore, let's test our indepedenet variables and interpret the results based on the above reasoning:   
+
+```{r}
+install.packages("car")
+library(dplyr)
+library(car)
+library(stargazer)
+Vif_inc86 <- lm(inc86~ nfarr86 + narr86 + pcnv + durat + black + hispan, df)
+Vif_nfarr86 <- lm(nfarr86 ~ inc86 + narr86 + pcnv + durat + black + hispan, df)
+Vif_narr86 <- lm(narr86 ~ inc86 + nfarr86 + pcnv + durat + black + hispan, df)
+Vif_pcnv <- lm(pcnv ~ inc86 + nfarr86 + narr86 + durat + black + hispan, df)
+vif_durat <- lm (durat ~ inc86 + nfarr86 + narr86 + black + hispan, df)
+vif_black <- lm(black ~ inc86 + nfarr86 + narr86 + durat + hispan, df)
+vif_hispan <- lm(hispan ~ inc86 + nfarr86 + narr86 + durat + black, df)
+vif(Vif_inc86)
+vif(Vif_nfarr86)
+vif(Vif_narr86)
+vif(Vif_pcnv)
+vif(vif_durat)
+vif(vif_black)
+vif(vif_hispan)
+```
+
+
+After running our variance inflation factor regressions to test for multicollinearity between each independent variable and other independent variables, the results show there is some multicollinearity among our independent variables, but it is not at a level where it violates the no perfect collinearity assumption or above the VIF of 10. As such, we will say that our variables passed the multicollinearity test, as shown in the test result above. 
+
+
+In this section, we will examine the interaction between income and race to see how these two variables interactive nature affect average sentencing. Provided that we have two race dummy variables, we will look at both the interactive between income and blacks, and income and hispanics. In this same analysis, we will look at the interaction between income and recent unemployment duration and report the resultant impact they have on average sentencing. After running our new interactive regressions, we will interpret the results:
+
+```{r}
+library(wooldridge)
+df1_interaction <- lm(avgsen ~ inc86 + nfarr86 + narr86 + pcnv + durat + black + hispan + inc86:black + inc86:hispan + inc86:durat, df)
+stargazer(df1_reg, df1_interaction, type= "text")
+```
+
+ After running our new regression model with interactive terms, we could glean interesting differences between our original model and the interactive model. We will point out some of the differences and interpret the results of our interactive model. First, our income variable became less statistically significant. It slid down from 1% statistical significance to 10% significance level. Second, we still see that three variables we identified earlier in this paper as statistically insignificant remain insignificant: felony arrests (nfarr86), times arrested (narr86), and recent unemployment duration (durat). Third, we see that our interactive term income and black are statistically significant at the 1% level. In contrast, the income and hispanic interactive term is statistically insignificant. Plus, we see that the interactive variable income and recent unemployment status is also statistically insignificant. Given this information about interactive terms, we will then only interpret the interaction between income and black:
+ 
+ To interpret the interactive term income and black, we have to take the first order derivative. From here, we could glean some useful insights. One is that, holding everything else constant, for non-blacks, when income increases by $100,000, on average we would expect their average sentencing to decrease by 4 months. But, for blacks, when income increases by $100,000, holding everything else constant, on average blacks average sentence would be 1 month less than non-blacks. This is an interesting result, because it is easy for a layperson to think that blacks would get a higher average sentence than non-blacks, but this is not the case in our model. We will conduct a hypothesis and test whether this interactive term between income and black is statistically significant or not. Then, we will follow it up with the result:
+
+```{r}
+library(car)
+Ho_interactive2 <- c("inc86:black=0")
+linearHypothesis(df1_interaction, Ho_interactive2)
+
+Ho_interactive2 <- c("inc86:hispan=0", "inc86:durat=0")
+linearHypothesis(df1_interaction, Ho_interactive2)
+```
+
+Evidently, we reject the null hypothesis that income and black do not affect each other. Our test rendered a small p-value (.0003) and a large f-statistic (12.735). However, for the other two interactive terms: income and hispanc, and income and rcent unemployment duration, the results failed to reject the hypothesis. In our initial regression, these two interactive terms, their coefficients were statistically insignificant. Likewise, in our hypothesis testing, we failed to reject the null hypothesis, that income and hispanic are not correlated and that income and recent unemployment duration is correlated. From our investigation, we could finally say that from our three interactive terms, only income and black coefficient is statistically significant. 
+
+
+
+Now, we will examine another aspect of our regression analysis. We will regress our model using the quadratic method. Our hope is to see whether one of our independent variables partial affect on average sentence is a function of itself. Thus, we will run the regression and report the results. We will look at the two statistically significant variables we identified in this paper: income and proportion of prior convictions:
+
+```{r}
+install.packages("ggplot2")
+library(ggplot2)
+df1_quadratic <- lm(avgsen ~ inc86 + I(inc86^2) + nfarr86 + narr86 + pcnv + I(pcnv^2) + durat + black + hispan, df)
+stargazer(df1_reg, df1_quadratic, type="text")
+ggplot(df, aes(log(inc86), y=avgsen)) + 
+  geom_point()
+```
+
+
+ Avgsen = income86 + income86^2
+
+ davgsen
+ _______  = -.008 - 2(.00002income86)
+ d income
+
+
+Holding all else fixed, when income is zero, on average, the average sentence will be -.008 when income increases by $100. However, if income is, say, 5 times the level, then we would expect the following: 
+
+ Avgsen = income86 + income86^2
+
+ davgsen
+ _______  = -.008 - 2(.00002income86)
+ d income
+ 
+          = -.008 - 2(.00002)5
+          = -.008 - .0002
+          = -.0082
+          
+To interpret the above result, holding all else fixed, on average, when income goes up by $500, we would expect the average sentence to decrease by .0082. Now, let's say at what point do we see the effect of income on average sentence decrease at a decreasing level. We will find the inflection point:
+
+X* = |Income86/ 2(income86^2)|
+
+  = .008/ 2(.00002)
+  = $200
+  
+  
+What we take away from the above equation is that we would expect, holding all else fixed, on average the effect of income on average sentence will decrease at a decreasing level. The inflection point is $200, after which the effect will decrease at a decreasing level. Meaning, as income increases, on average its effect on average sentence will decrease at a decreasing level. 
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Let us now test for heteroskedasticity in our average sentencing equation. We will conduct a hypothesis testing as follows:
+
+                H0: Var(u|x1, x2....., x3) = Var(u|x) = constant against H1: HO is not true
+                
+We will use the BP test using the F statistic, but we will also test the same thing using the White test using F statistic, and lastly we will use the BP and the White tests using LM ratio. Then, we will discuss the difference in the results they render. Keep in mind that a large F statistic or a large Lagrange multiplier statistic, (LM) lead to rejection of the null hypothesis. 
+
+```{r}
+# BP test (using F statistics)
+df1_uhat <- resid(df1_reg)
+summary(lm(df1_uhat    ~ inc86 + nfarr86 + narr86 + pcnv + durat + black + hispan, df))
+
+```
+
+Using the BP test, we see that our p-value is large (p-value =1) and our F-statistic (F-statistic = 8.583e-28) is small. Consequently, we fail to reject the null hypothesis. This means our unobserved distribution is homoskedastic. Now, we will conduct more testing, but using a White test:
+
+```{r}
+
+# White test (using F statistic)
+u_hat <- resid(df1_reg)
+y_hat <- predict(df1_reg)
+summary(lm(u_hat^2 ~ y_hat + I(y_hat^2)  ))
+```
+
+
+Based on the results of the White test, we could glean that the p-value is very small (p-value = 5.06e-09) and the F-statistic (F-statistic = 19.24) is large. Unlike the BP test, our White test tells a different story, in that we are going to reject the null hypothesis that our unobserved variables distribution is homoskeadstic. Obviously, one of the disadvantages of using the White test is that we lose some of our degrees of freedom.Because the BP test results rendered a failure to reject the null hypothesis result and the White test rejected the null hypothesis, we are going to transform the unobserved variables (u-hats) using the lograthimc method and examine the results again:
+
+```{r}
+install.packages("wooldridge")
+library(car)
+library(wooldridge)
+library(dplyr)
+library(stargazer)
+df <- (crime1)    
+
+df1_reg_log <- lm(log(avgsen) ~ log(inc86)+ log(nfarr86) + log(narr86) + log(pcnv) + log(durat) + black + hispan, df)
+stargazer(df1_reg_log, type = "text")                  
+                  
+
+```
+
+Next, we are going to test for heteroskedasticity in average sentencing equation using BP and White tests using LM ratio, then follow it with interpretation. Recalling our hypothesis:
+
+    H0: Var(u|x1, x2....., x3) = Var(u|x) = constant against H1: HO is not true
+
+
+
+```{r}
+#Bp test (using LM statistics)
+install.packages("lmtest")
+library(lmtest)
+bptest(df1_reg)
+
+# White test (using LM statistics)
+y_hat10 <- predict(df1_reg)
+bptest (df1_reg, u_hat^2 ~ y_hat  + I(y_hat^2)   )
+
+```
+
+The p-value is small at the 5% significance level. Therefore, we reject homoskedasticity. Because our tests rendered a result that rejected the homoskedasticity in both the BP test (using LM statistics) and the White test (using LM statistics), this means our Gauss-Markov 5th assumptionn: the variance of our unobserved variables given our observed explanatory variables is constant (Var(u|x=constant)). Because our unobserved variables are heteroskedastic, OLS is no longer a proper estimating technique unless we transform the regression using lograthim (log), or use OLS and correct the standard error and give it a new name, such as robust SE, or we have the option to change the estimation technique. We could use GLS or WLS.  
+
+Thus, below we will run a new regression using the OLS estimation technique but will correct the standard error(se) to get the robust standard error:
+
+```{r}
+
+y_hat20 <- predict (df1_reg)
+range(y_hat20)
+h_hat <- y_hat20 *(1-y_hat20)
+w   <- 1/h_hat
+df1_reg_wls <- lm(avgsen ~ inc86 + nfarr86 + narr86 + pcnv + durat + black + hispan, weights = w, df)
+
+
+coeftest(df1_reg, vcov. = hccm(df1_reg, type = "hc0"))
+
+
+ ```
+
+After correcting our standard error for heterskedastic
+
+
+need to interpret above after correcting the standard error 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
