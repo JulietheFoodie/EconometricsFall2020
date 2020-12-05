@@ -22,6 +22,8 @@ library(corrgram)
 ```{r}
 #data cleaning 
 df <- filter(crime1, avgsen > 0)
+df$inc86 <- df$inc86 + .00000001
+df$durat <- df$durat + .00000001
 
 df$race <- with(df, ifelse(df$black == 1, "black", 
                            ifelse(df$hispan == 1, "hisp", "non")))
@@ -36,7 +38,7 @@ In this paper, we will undertake an econometric examination using the Crime1 dat
 
 Now, to carry out our investigation, we will begin by focusing our annalysis on the the `r nrow(filter(df, avgsen > 0))` individuals in our dataset who have been sentenced. We're filtering out the individuals who have not served prison time as our question is focused on what factors impact sentence length, not whether they've been found guilty at all. We'll regress our dependent variable "avgsen", which is the average sentence length of a convicted criminal, on variant explanatory variables: inc86 (legal income), nfarr86 (felony arrests), pcnv (proportion of prior convictions), durat (recent unemp duration), narr86(times arrested), Black, and Hispanic. Since our data treats black and hispanic as mutually exclusive, we're going to combine our race variable into a single dummy that illustrates whether an individual is black, hispanic, or neither. Our multiregression model would start with the following model and build on from there to test for interaction between variables and to reflect for possible increase or decrease in sentencing length in the short- and long-term. This is our original regression model:
 
-$$Avgsen= \beta_{0} + \beta_10}inc86 + \beta_{2}nfarr86 + \beta_{3}narr86 + \beta_{4}pcnv + \beta_{5}durat + \vardelta_{1}race + u$$
+$$ Avgsen= \beta_{0} + \beta_{1}inc86 + \beta_{2}nfarr86 + \beta_{3}narr86 + \beta_{4}pcnv + \beta_{5}durat + \delta_{1}race + u $$
 
 
 The additional questions will help put our focus question in perspective, and allow us to identify alternative explanations besides an individual's income to why average sentencing length would differ from one person to another, given variables like employment status, criminal history, and race. 
@@ -45,6 +47,8 @@ The additional questions will help put our focus question in perspective, and al
 Lastly, for so long, policy makers have been trying to answer the above questions in order to improve economic and criminal justice policy making. They endeavor to identify our criminal justice system flaws and seek to address them, including issues like sentencing discrimination on the basis of income and race, and to improve the efficient and fair allocation of economic resources to all their citizens. This is an interesting economic inquiry, for it touches the heart of one of the challenges that has engulfed our nation. A stable and functioning economic system and a fair criminal justice system are important to maintaining a healthy life style, public safety to guard against social division because of discriminatory economic and criminal justice motives, and to promote a flourishing, economically strong country in the 21st century. For this reason, we are seeking to investigate whether average sentencing in, say, California or other states for that matter, are rendered based on effective, just, and fair laws, or are there discriminatory motives that impact our justice system rendering of sentencing. If discrimination does exist, then as citizens, we have a solemn obligation to put forth facts backed up by objective data and partake in making our country, as our founding fathers envisioned, a "more perfect union." 
 
 Our Crime1 dataset is included in the wooldridge package. We did not collect the data on our own nor do we know precisely how the data was collected. However, we know that the data it contains was collected in the State of California and the arrests data are for the year 1986. The observations reflect men who were born in 1960 or 1961, and the subject men in the dataset all had criminal history and a minimum of one arrest before 1986. So, our regression model, as written above, will provide a multidimensional analysis to explain whether our independent variables listed do or do not have a causal relationship with our dependent variable, Avgsen. We wanted to include gender as a dummy variable in our regression model, but the dataset only contains data on men. Therefore, instead of looking at the relationship between gender and average sentencing, we will dwell on race and average sentencing. 
+
+### Data Exploration
 
 In order to better understand our data we'll look at each variable to check for any violations of the first Gauss Markov assumption: linear parameters. While there's logical expanations for relationships between our explanatory variable and our response variables, we also need to ensure that our data bares out that relationship.
 
@@ -73,7 +77,7 @@ ggplot(df, aes(x = inc86))+
 The histogram shows a strong right hand skew indicating that in order to meet the linear parameters assumption, we will need to take the log of the variable. Next we need to visualize the relationship between the income and average sentence length. 
 
 ```{r}
-ggplot(df, aes(x = log(inc86), y = (avgsen))) + 
+ggplot(df, aes(x = inc86, y = (avgsen))) + 
   xlab("Income") + ylab("Average Sentence Length") + 
   ggtitle("1986 Legal Income and Average Sentence Length") +
   geom_point() + 
@@ -95,8 +99,6 @@ ggplot(df, aes(x = nfarr86)) +
 The histogram indicates a strong right hand skew in felony arrests. However, the ordinal nature of the data makes it unideal for a multiple regression model. 
 
 
-
-
 ```{r}
 ggplot(df, aes(x = fnfarr86, y = avgsen)) + 
   xlab("1986 Felony Arrests") + ylab("Average Sentence in Months") + 
@@ -107,7 +109,7 @@ ggplot(df, aes(x = fnfarr86, y = avgsen)) +
 
 ```
 
-The side by side boxplots indicates that amoung the average sentence length for each number of felony arrests has essentially no association. Due to this and the ordinal nature of the data we will not be including this variable in our regression. 
+The side by side boxplots illustrates that amoung the average sentence length for each number of felony arrests has essentially no association on average. Due to this and the ordinal nature of the variable we should consider removing this variable from our model.  
 
 #### Number of Arrests in 1986
 
@@ -131,7 +133,7 @@ ggplot(df, aes(x = fnarr86, y = avgsen)) +
 
 ```
 
-Again, he side by side boxplots indicates that amoung the average sentence length for each number of arrests there is essentially no association. While the average sentence for those with 4 felony arrests is higher than the rest, this is merely one data point and as it does not imply an overall trend in the data it shouldn't be a concern Due to the boxplots and the ordinal nature of the data we will not be including this variable in our regression. 
+Again, he side by side boxplots indicates that amoung the average sentence length for each number of arrests there is essentially no association. While the average sentence for those with 4 felony arrests is higher than the rest, this is merely one data point and as it does not imply an overall trend in the data it's unlikely to be influencial in our model. Due to this and the ordinal nature of the variable we should consider removing this variable from our model.
 
 #### Proportion of prior convictions 
 
@@ -160,7 +162,7 @@ This scatterplot indicates a negative association between prior convictions and 
 ```{r}
 ggplot(df, aes(x = (durat))) + 
   xlab("Duration in Months") + ylab("Count") + 
-  ggtitle("Histogram of u=Unemployment duration") +
+  ggtitle("Histogram of Unemployment Duration") +
   geom_histogram(binwidth = 5) + 
   theme_minimal()
 ```
@@ -191,42 +193,43 @@ ggplot(df, aes(x = race, y = avgsen)) +
 
 The boxplots of average sentence length show minmimal variation accross different racial categories. This indicates that even if there is a statistical significance between the regressions, it is likely of little practical significance. However, since race is a major point in our research question we'll keep this variable in our regression.  
 
+### Model Specification 
+
+Since we're considering eliminating two of the variables, it's important we include them in our models until we've determined the best form for the other variables in our model. 
+
+During our exploration of the variables, we found that due to skewness, our sentence length, income, and unemployment duration variables may be better represented as logs. We'll compare each combination of logged functions in order to determine which model best fits our data.
 
 ```{r}
-df <-  crime1
-
-summary (df)
-
+reg1 <- lm((avgsen) ~ inc86 + narr86 + nfarr86 + pcnv + durat + race, df)
+reg2A <- lm(log(avgsen) ~ inc86 + narr86 + nfarr86 + pcnv + durat + race, df)
+reg2B <- lm(avgsen ~ log(inc86) + narr86 + nfarr86 + pcnv + durat + race, df)
+reg2C <- lm(log(avgsen) ~ log(inc86) + narr86 + nfarr86 + pcnv + durat + race, df)
+reg2D <- lm(log(avgsen) ~ inc86 + narr86 + nfarr86 + pcnv + log(durat) + race, df)
+reg2E <- lm(avgsen ~ log(inc86) + narr86 + nfarr86 + pcnv + log(durat) + race, df)
+reg2F <- lm(log(avgsen) ~ log(inc86) + narr86 + nfarr86 + pcnv + log(durat) + race, df)
+stargazer(reg1, reg2, reg2B, reg2C, reg2D, reg2E, reg2F, type = "text")
 ```
 
-For illustrative purposes, below we include the histogram charts of our variables:
+The $R^2$ strongly indicate that taking the log of both avgsen and inc86 while leaving duration unlogged is the ideal form for our variables. 
+
+Next we'll compare models with and without narr86 and nfarr86 to see if their impact justifies keeping them in the model. 
 
 ```{r}
-
+reg3 <- lm(log(avgsen) ~ log(inc86) + pcnv + durat + race, df)
+stargazer(reg2C, reg3, type = "text")
 ```
 
+Including narr86 and nfarr86 not only increases our adjusted $R^2$ by 6 percentage points but they are also booth statistically significant at the 90% confidence level so we'll keep them in our model. As there is no indication in our scatterplots for a quadratic form in our model we can consider the following regression our final model
 
-```{r}
-hist(df$avgsen, col = "red")
-hist(df$inc86, col = "blue")
-hist(df$nfarr86, col = "green")
-hist(df$narr86, col = "purple")
-hist(df$pcnv, col = "orange")
-hist(df$durat, col = "yellow")
-hist(df$black, col = "gray")
-hist(df$hispan, col = "dark green")
-```
+$$ \widehat{log(Avgsen)} = 2.555 + 0.001(log(inc)) + 0.282(narr86) - 0.424(nfarr86) - 0.495(pcnv) + 0.036(durat) - 0.243(racehisp) - 0.366(racenon) $$
 
-
-
-Our true model that we will be examining to compute our estimated coefficients using R Programming Language is the following:
-
-                                      Avgsen= inc86 + nfarr86 + narr86 + pcnn + durat + black + Hisanic+ u          (True Model)
+### Model Bias and Robustness
                                       
-                                      Avgsen^= inc86^ + nfarr86^ + narr86^ + pcnn^ + durat^ + black^ + Hisanic^ (estimated model) 
-                                     
-                                      
-We like to point out that we will be using Ordinary Least Square (OLS) estimating method to compute the coefficients of our variables. Our model complies with all of OLS multiple regression assumptions. That is, our regression model is linear in parameters, the sampling of the observations was undertaken randomly, the variance of our independent variables is greater than zero (Var(x) > 0), the expected value of our unobserved variables given our observed explanatory variables is zero (E(u|x)=0), the variance of our unobserved variables given our observed explanatory variables is constant (Var(u|x=constant)), and the population error (u) is normally distributed with zero mean and variance u ~(Normal (0,σ^2)).Having met the above assumptions, we will run several regression models to ensure that we are actually in compliance with these assumptions. 
+We will be using Ordinary Least Square (OLS) estimating method to compute the coefficients of our variables. Our model complies with all five of OLS multiple regression assumptions. First, our regression model is linear in parameters, as illustrated by our model above. Additionally, the sampling of the observations was undertaken randomly so we've met that condition as well. The third condition 
+
+Also, the variance of our independent variables is `r var(df$avgsen)` which is greater than zero, ***what assumption is this***
+
+the expected value of our unobserved variables given our observed explanatory variables is zero (E(u|x) = 0), the variance of our unobserved variables given our observed explanatory variables is constant (Var(u|x=constant)), and the population error (u) is normally distributed with zero mean and variance u ~(Normal (0,σ^2)).Having met the above assumptions, we will run several regression models to ensure that we are actually in compliance with these assumptions. 
 
 As of this point, we are assuming that the distribution of our data is homoskedastic, consistent with assumption five. But this assumption does not necessarily hold, so we will use a different estimation technique like Weighted Least Square (WLS), or the heteroskedasticity robust method. But, before going there, we will start with the OLS estimation technique and build our case for which technique is best for our dataset and regression output. Now, let's start with running our first regression model using OLS: 
 
@@ -461,7 +464,7 @@ df1_reg_wls <- lm(avgsen ~ inc86 + nfarr86 + narr86 + pcnv + durat + black + his
 coeftest(df1_reg, vcov. = hccm(df1_reg, type = "hc0"))
 
 
- ```
+```
 
 After correcting our standard error for heterskedastic
 
