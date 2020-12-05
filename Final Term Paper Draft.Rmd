@@ -1,34 +1,198 @@
 ---
 title: "Term Paper_GP2_Abraham Alhomadi, Julie Norman, and Keaton Manwaring"
-output: html_document
+author: 
+date: July 31, 2016
+output:
+  rmarkdown::html_document:
+    theme: minimal
 ---
 
+```{r include=FALSE}
+
+# theme_minimal()
+# Libraries
+library(tidyverse)
+library(lmtest)
+library(wooldridge)
+library(gridExtra)
+library(stargazer)
+library(corrgram)
+```
+
+```{r}
+#data cleaning 
+df <- filter(crime1, avgsen > 0)
+
+df$race <- with(df, ifelse(df$black == 1, "black", 
+                           ifelse(df$hispan == 1, "hisp", "non")))
+
+df$fnfarr86 <- as.factor(df$nfarr86)
+df$fnarr86 <- as.factor(df$narr86)
+
+```
 
 
 In this paper, we will undertake an econometric examination using the Crime1 dataset in the Wooldrige Package. The dataset contain a total of 2725 observations on 16 distinct variables.It was collected in 1986, in the State of California. Looking at the data, we will aspire to answer the following research question that is the focus of this paper: "How does an individual's income affect average sentencing outcome when they commit a crime? This question has been the subject of policy research for decades and, using the Crime1 dataset, we would like to contribute to the conversation on this issue of economics and criminal justice reform. Our belief as citizens is that we have a collective responsibility to promote better policies and the well-being of our nation through the efficient and just allocation of resources and ensuring that our criminal justice system is in fact "just" in its treatment of citizens who are convicted of a crime. In addition to our focus research question, we will investigate other equally critical questions, some of which include,"Does a person's employment status increase or decrease average sentencing?", " Do blacks get different average sentence lengths than nonblacks?",  and "how does an individual's prior criminal history, if any, contribute to their average sentencing length?". 
 
-Now, to carry out our investigation, we will regress our dependent variable "avgsen", which is the average sentence length of a convicted criminal, on variant explanatory variables: inc86 (legal income), nfarr86 (felony arrests), pcnv (proportion of prior convictions), durat (recent unemp duration), narr86(times arrested), Black, and Hispanic. Our multiregression model would start with the following model and build on from there to test for interaction between variables and to reflect for possible increase or decrease in sentencing length in the short- and long-term. This is our original regression model:
+Now, to carry out our investigation, we will begin by focusing our annalysis on the the `r nrow(filter(df, avgsen > 0))` individuals in our dataset who have been sentenced. We're filtering out the individuals who have not served prison time as our question is focused on what factors impact sentence length, not whether they've been found guilty at all. We'll regress our dependent variable "avgsen", which is the average sentence length of a convicted criminal, on variant explanatory variables: inc86 (legal income), nfarr86 (felony arrests), pcnv (proportion of prior convictions), durat (recent unemp duration), narr86(times arrested), Black, and Hispanic. Since our data treats black and hispanic as mutually exclusive, we're going to combine our race variable into a single dummy that illustrates whether an individual is black, hispanic, or neither. Our multiregression model would start with the following model and build on from there to test for interaction between variables and to reflect for possible increase or decrease in sentencing length in the short- and long-term. This is our original regression model:
 
-                        Avgsen= inc86 + nfarr86 + narr86 + pcnn + durat + black + Hisanic. 
+$$Avgsen= \beta_{0} + \beta_10}inc86 + \beta_{2}nfarr86 + \beta_{3}narr86 + \beta_{4}pcnv + \beta_{5}durat + \vardelta_{1}race + u$$
+
 
 The additional questions will help put our focus question in perspective, and allow us to identify alternative explanations besides an individual's income to why average sentencing length would differ from one person to another, given variables like employment status, criminal history, and race. 
 
 
 Lastly, for so long, policy makers have been trying to answer the above questions in order to improve economic and criminal justice policy making. They endeavor to identify our criminal justice system flaws and seek to address them, including issues like sentencing discrimination on the basis of income and race, and to improve the efficient and fair allocation of economic resources to all their citizens. This is an interesting economic inquiry, for it touches the heart of one of the challenges that has engulfed our nation. A stable and functioning economic system and a fair criminal justice system are important to maintaining a healthy life style, public safety to guard against social division because of discriminatory economic and criminal justice motives, and to promote a flourishing, economically strong country in the 21st century. For this reason, we are seeking to investigate whether average sentencing in, say, California or other states for that matter, are rendered based on effective, just, and fair laws, or are there discriminatory motives that impact our justice system rendering of sentencing. If discrimination does exist, then as citizens, we have a solemn obligation to put forth facts backed up by objective data and partake in making our country, as our founding fathers envisioned, a "more perfect union." 
 
-Our Crime1 dataset is included in the wooldridge package. We did not collect the data on our own nor do we know precisely how the data was collected. However, we know that the data it contains was collected in the State of California and the arrests data are for the year 1986. The observations reflect men who were born in 1960 or 1961, and the subject men in the dataset all had criminal history and a minimum of one arrest before 1986. So, our regression model (Avgsen= inc86 + nfarr86 + narr86 + pcnn + durat + black + Hisanic) will provide a multidimensional analysis to explain whether our independent variables listed do or do not have a causal relationship with our dependent variable, Avgsen. We wanted to include gender as a dummy variable in our regression model, but the dataset only contains data on men. Therefore, instead of looking at the relationship between gender and average sentencing, we will dwell on race and average sentencing. 
+Our Crime1 dataset is included in the wooldridge package. We did not collect the data on our own nor do we know precisely how the data was collected. However, we know that the data it contains was collected in the State of California and the arrests data are for the year 1986. The observations reflect men who were born in 1960 or 1961, and the subject men in the dataset all had criminal history and a minimum of one arrest before 1986. So, our regression model, as written above, will provide a multidimensional analysis to explain whether our independent variables listed do or do not have a causal relationship with our dependent variable, Avgsen. We wanted to include gender as a dummy variable in our regression model, but the dataset only contains data on men. Therefore, instead of looking at the relationship between gender and average sentencing, we will dwell on race and average sentencing. 
 
-Below is a summary statistics of our regression variables:
+In order to better understand our data we'll look at each variable to check for any violations of the first Gauss Markov assumption: linear parameters. While there's logical expanations for relationships between our explanatory variable and our response variables, we also need to ensure that our data bares out that relationship.
+
+#### Average Sentence Length
 
 ```{r}
-install.packages("tidyverse")
-install.packages("effects")
-install.packages("corrgram")
-install.packages("lmtest")
+ggplot(df, aes(x = avgsen))+ 
+  xlab("Length in Months") + ylab("Count") + 
+  ggtitle("Average Sentence Length Histogram") +
+  geom_histogram(binwidth = 5) + 
+  theme_minimal()
+```
+The histogram shows that that the distribution of sentence length is bell shape with a slight right skew indicating that a log might be an appropriate adjustment for our model. 
 
 
-library (wooldridge)
-library(dplyr)
+#### Income from 1986
+
+```{r}
+ggplot(df, aes(x = inc86))+ 
+  xlab("Income") + ylab("Count") + 
+  ggtitle("Histogram of 1986 Legal Income") +
+  geom_histogram(binwidth = 20) + 
+  theme_minimal()
+```
+
+The histogram shows a strong right hand skew indicating that in order to meet the linear parameters assumption, we will need to take the log of the variable. Next we need to visualize the relationship between the income and average sentence length. 
+
+```{r}
+ggplot(df, aes(x = log(inc86), y = (avgsen))) + 
+  xlab("Income") + ylab("Average Sentence Length") + 
+  ggtitle("1986 Legal Income and Average Sentence Length") +
+  geom_point() + 
+  theme_minimal()
+```
+
+The model indicates a week negative association between the income variable and the sentence variable. Due to this, we shouldn't expect a strong impact of this variable in our model. 
+
+#### Felony arresting 
+
+```{r}
+ggplot(df, aes(x = nfarr86)) + 
+  xlab("1986 Felony Arrests") + ylab("Count") + 
+  ggtitle("Historgram of 1986 Felony Arrests") +
+  geom_histogram() + 
+  theme_minimal()
+```
+
+The histogram indicates a strong right hand skew in felony arrests. However, the ordinal nature of the data makes it unideal for a multiple regression model. 
+
+
+
+
+```{r}
+ggplot(df, aes(x = fnfarr86, y = avgsen)) + 
+  xlab("1986 Felony Arrests") + ylab("Average Sentence in Months") + 
+  ggtitle("1986 Legal Income and Average Sentence Length") +
+  geom_boxplot() + 
+  theme_minimal()
+
+
+```
+
+The side by side boxplots indicates that amoung the average sentence length for each number of felony arrests has essentially no association. Due to this and the ordinal nature of the data we will not be including this variable in our regression. 
+
+#### Number of Arrests in 1986
+
+```{r}
+ggplot(df, aes(x = narr86)) + 
+  xlab("Arrests") + ylab("Count") + 
+  ggtitle("Historgram of 1986 Arrests") +
+  geom_histogram() + 
+  theme_minimal()
+```
+
+The histogram indicates a strong right hand skew in arrests. However, the ordinal nature of the data makes it again unideal for a multiple regression model. 
+
+
+```{r}
+ggplot(df, aes(x = fnarr86, y = avgsen)) + 
+  xlab("1986 Felony Arrests") + ylab("Average Sentence in Months") + 
+  ggtitle("1986 Legal Income and Average Sentence Length") +
+  geom_boxplot() + 
+  theme_minimal()
+
+```
+
+Again, he side by side boxplots indicates that amoung the average sentence length for each number of arrests there is essentially no association. While the average sentence for those with 4 felony arrests is higher than the rest, this is merely one data point and as it does not imply an overall trend in the data it shouldn't be a concern Due to the boxplots and the ordinal nature of the data we will not be including this variable in our regression. 
+
+#### Proportion of prior convictions 
+
+```{r}
+ggplot(df, aes(x = pcnv)) + 
+  xlab("Proportion of Prior Convictions") + ylab("Count") + 
+  ggtitle("Prop of Prior Convictions") +
+  geom_histogram(binwidth = .07) + 
+  theme_minimal()
+```
+
+The histogram indicates that the distribution of th proportion of prior convictions is approximately normal, indicating that this variable is a good candidate for use in a multiple regression model. 
+
+```{r}
+ggplot(df, aes(x = pcnv, y = avgsen)) + 
+  xlab("Proportion of Prior Convictions and Average Sentence Length") + ylab("Sentence Length in Months") + 
+  ggtitle("Prop of Prior Convictions") +
+  geom_point() + 
+  theme_minimal()
+```
+
+This scatterplot indicates a negative association between prior convictions and sentence length. This indicates that as convictions become more common for an individual, their sentence length decreases. This trend is particularly interesting as it does fit a typically assumption of repeat offenders having harsher punishments. While we can only speculate as to the exact nature of this relationship, its possible that other variables such as the types of crimes committed and/or race have a larger impact on average sentence then we wouldn've prevously thought. That makes this variable an ideal candidate for a multiple regression since we can see how this variable combined with other indicators appropriate predict average sentence length.
+
+#### Duration of Unemployment
+
+```{r}
+ggplot(df, aes(x = (durat))) + 
+  xlab("Duration in Months") + ylab("Count") + 
+  ggtitle("Histogram of u=Unemployment duration") +
+  geom_histogram(binwidth = 5) + 
+  theme_minimal()
+```
+
+The histogram indicates a strong left hand skew in unemployment duration. This indicates that a logarithmic model might be more appropriate for this variable. 
+
+```{r}
+ggplot(df, aes(x = (durat), y = (avgsen))) + 
+  xlab("Unemployment Duration in Months") + ylab("Average Sentence in Months") + 
+  ggtitle("Unemployment and Sentence Length Scatterplot") +
+  geom_point() + 
+  theme_minimal()
+```
+
+This scatterplot illustrates a weak association between unemployment length and average sentence length. This trend indicates that longer lengths of unemployment may not necessarily lead to the commiting of harsher crimes or that a history of unemployment leads to harsher punishments when convicted. 
+
+#### Race Comparisons
+
+
+```{r}
+ggplot(df, aes(x = race, y = avgsen)) + 
+  xlab("Race") + ylab("Average Sentence in Months") + 
+  ggtitle("1986 Legal Income and Average Sentence Length") +
+  geom_boxplot() + 
+  theme_minimal()
+
+```
+
+The boxplots of average sentence length show minmimal variation accross different racial categories. This indicates that even if there is a statistical significance between the regressions, it is likely of little practical significance. However, since race is a major point in our research question we'll keep this variable in our regression.  
+
+
+```{r}
 df <-  crime1
 
 summary (df)
@@ -38,7 +202,11 @@ summary (df)
 For illustrative purposes, below we include the histogram charts of our variables:
 
 ```{r}
-library(dplyr)
+
+```
+
+
+```{r}
 hist(df$avgsen, col = "red")
 hist(df$inc86, col = "blue")
 hist(df$nfarr86, col = "green")
@@ -48,6 +216,7 @@ hist(df$durat, col = "yellow")
 hist(df$black, col = "gray")
 hist(df$hispan, col = "dark green")
 ```
+
 
 
 Our true model that we will be examining to compute our estimated coefficients using R Programming Language is the following:
@@ -62,10 +231,6 @@ We like to point out that we will be using Ordinary Least Square (OLS) estimatin
 As of this point, we are assuming that the distribution of our data is homoskedastic, consistent with assumption five. But this assumption does not necessarily hold, so we will use a different estimation technique like Weighted Least Square (WLS), or the heteroskedasticity robust method. But, before going there, we will start with the OLS estimation technique and build our case for which technique is best for our dataset and regression output. Now, let's start with running our first regression model using OLS: 
 
 ```{r}
-install.packages("stargazer")
-library(stargazer)
-library(corrgram)
-df <- select(df, c(avgsen, inc86, nfarr86, narr86, pcnv, durat, black, hispan))
 
 df0_reg <- lm(avgsen ~ inc86, df)
 df1_reg <- lm(avgsen ~ inc86 + nfarr86 + narr86 + pcnv + durat + black + hispan, df)
