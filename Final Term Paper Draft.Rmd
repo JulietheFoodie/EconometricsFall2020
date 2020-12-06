@@ -18,6 +18,7 @@ library(gridExtra)
 library(stargazer)
 library(corrgram)
 library(broom)
+library(car)
 ```
 
 ```{r}
@@ -170,7 +171,7 @@ ggplot(df, aes(x = (durat))) +
   theme_minimal()
 ```
 
-The histogram indicates a strong left hand skew in unemployment duration. This indicates that a logarithmic model might be more appropriate for this variable. 
+The histogram indicates a strong left hand skew in unemployment duration. This indicates that a logarithmic model might be more appropriate for this variable. The measurement unit for duration of unemployment is not given in our data set but since all the other time variables are measured in months we're assuming that here as well. 
 
 ```{r}
 ggplot(df, aes(x = (durat), y = (avgsen))) + 
@@ -223,13 +224,39 @@ reg3 <- lm(log(avgsen) ~ log(inc86) + pcnv + durat + race, df)
 stargazer(reg2C, reg3, type = "text")
 ```
 
-Including narr86 and nfarr86 not only increases our adjusted $R^2$ by 6 percentage points but they are also booth statistically significant at the 90% confidence level so we'll keep them in our model. As there is no indication in our scatterplots for a quadratic form in our model we can consider the following regression our final model
+Including narr86 and nfarr86 not only increases our adjusted $R^2$ by 6 percentage points but they are also both statistically significant at the 90% confidence level so we'll keep them in our model. As there is no indication in our scatterplots for a quadratic form in our model we can consider the following regression our final model
 
 $$ \widehat{log(Avgsen)} = 2.555 + 0.001(log(inc)) + 0.282(narr86) - 0.424(nfarr86) - 0.495(pcnv) + 0.036(durat) - 0.243(racehisp) - 0.366(racenon) $$
 
 ### Model Assumptions 
                                       
-We used an Ordinary Least Square (OLS) estimating method to compute the coefficients of our parameters. Our model complies with all five of OLS multiple regression assumptions. First, our regression model is linear in parameters, as illustrated by our model above. Additionally, the sampling of the observations was undertaken randomly so we've met that condition as well. The third condition is that there's no multicollinearity. Since the independent variables is `r var(df$avgsen)` which is greater than zero and we have no variable repetition or variables that are perfect multiples of each other so we've met this assumption. The next assumption is the zero conditional mean assumption ie $E(u | inc, narr86, nfarr86, pcnv, durat, race) = 0$. We've already added logs to the model where appropriate and since the visualizations of our variables don't indicate a need for quadratics in our model, we can double check our model specificatioon by looking at the model residuals. 
+We used an Ordinary Least Square (OLS) estimating method to compute the coefficients of our parameters. Our model complies with all five of OLS multiple regression assumptions. First, our regression model is linear in parameters, as illustrated by our model above. Additionally, the sampling of the observations was undertaken randomly so we've met that condition as well. The third condition is that there's no multicollinearity. Since the independent variables is `r var(df$avgsen)` which is greater than zero and we have no variable repetition so we just need to check that we have no variables that are perfect multiples of each other 
+
+```{r}
+# log(avgsen) ~ log(inc86) + narr86 + nfarr86 + pcnv + durat + race, df
+
+lginc86_lm <- lm(log(inc86) ~ nfarr86 + narr86 + pcnv + durat + race, df)
+nfarr86_lm <- lm(nfarr86 ~ log(inc86) + narr86 + pcnv + durat + race, df)
+narr86_lm <- lm(narr86 ~ log(inc86) + nfarr86 + pcnv + durat + race, df)
+pcnv_lm <- lm(pcnv ~ log(inc86) + nfarr86 + narr86 + durat + race, df)
+durat_lm <- lm (durat ~ log(inc86) + nfarr86 + narr86 + pcnv + race, df)
+black_lm <- lm(black ~ inc86 + nfarr86 + narr86 + durat + hispan, df)
+hispan_lm <- lm(hispan ~ inc86 + nfarr86 + narr86 + durat + black, df)
+
+vif(lginc86_lm)
+vif(nfarr86_lm)
+vif(narr86_lm)
+vif(pcnv_lm)
+vif(durat_lm)
+vif(black_lm)
+vif(hispan_lm)
+
+vif_list <- list(vif(lginc86_lm), vif(nfarr86_lm), vif(narr86_lm), vif(pcnv_lm), vif(durat_lm), vif(black_lm), vif(hispan_lm) )
+names(vif_list) <- c("Regress on log(inc86)", "Regress on nfarr86", "Regress on narr86", "Regress on pcnv", "Regress on durat", "Regress on Black", "Regress on Hispanic")
+vif_list
+```
+
+The highest variance inflation factor of all the parameter regressions is 3.628310 while most are between one and two. Values between 1 and 5 are considered moderately correlated while values greater than 5 near perfect collinearity. Since our strongest correlation is a moderate correlation we've shown there's no multicollinearity and we've met this assumption. The next assumption is the zero conditional mean assumption ie $E(u | inc, narr86, nfarr86, pcnv, durat, race) = 0$. We've already added logs to the model where appropriate and since the visualizations of our variables don't indicate a need for quadratics in our model, we can double check our model specificatioon by looking at the model residuals. 
 
 ```{r}
 reg2C_df <- augment(reg2C)
@@ -267,7 +294,6 @@ The p-value is small is .02499 <.05 and, therefore significant, at the 95% confi
 Below, we compare our previous regression with a new regression that includes robust standard errors. .
 
 ```{r}
-
 range(y_hat)
 h_hat <- y_hat *(1-y_hat)
 w   <- 1/(h_hat^2)
@@ -277,9 +303,29 @@ stargazer(reg2C, reg2C_wls, type = "text")
 
 ```
 
-While there's only a slight difference in $R^2$ values, many of our beta values have changed, indicating that heteroskedasticity did impact our model and that the robust standard errors are appropriate for out analysis. Our final model is: 
+While there's only a slight difference in $R^2$ values, many of our beta values have changed, indicating that heteroskedasticity did impact our model and that the robust standard errors are appropriate for out analysis. There are three variables in our regression that are not statistically significant. In order to determine whether or not they should be in our model we need to determine whether or not they are jointly significant with the following hypothesis test with an F distribution. 
+
+$$H_{0}: log(inc86) = 1, pcnv = 0, durat = 0$$
+$$H_{1}: log(inc86) \neq 1, pcnv \neq 0, durat \neq 0 $$
+
+```{r}
+reg4 <- lm(log(avgsen) ~  narr86 + nfarr86 + race, weights = w, df)
+
+Ho_joint <- c("log(inc86) = 1", "pcnv = 0", "durat = 0")
+linearHypothesis(reg2C_wls, Ho_joint)
+```
+
+The results of the hyothesis test has a F value of 4607.9 and a p value that is essentially zero, meaning we reject the null hypothesis and have evidence that the variables are jointly signifant. Therefore we'll keep them in our model, which makes our final model the following:
 
 $$ \widehat{ log(avgsen)} = 2.563 + 0.009(log(inc86)) + 0.464(narr86) - 0.627(nfarr86) - 0.249(pcnv) + 0.041(durat) - 0.430(racehisp) -0.518(racenon) $$
+
+### Model Interpretation and Implication
+
+Our model suggests that for every 1 percent increase in legal income from 1986, our model suggest an increase in average sentence length by .009%. This variable isn't statistically significant nor is it of much practical significant given how small .009% is. For every additional arrest are model suggests a 46.4% increase in average sentence length. This result is statistically significant at the 90% confidence level but more importantly it has practical significance given that one more arrest doubles the average sentence length. Since this variable measures additional arrests, not necessarily convictions, it indicates the impact of having a record of criminal suspicion on prison sentence time is significant. The next variable has an unexpected association. Every additional felony arrest, our model suggests a 62.7% decrease in average sentence length. This result is statistically significant at the 95% confidence level. This result could stem from felonies having harshing punishments which encourages individuals to fight the charges harder in order to have a shorter sentence. For every on 1 unit increase in proportion of prior convictions, our model suggests a decrease in average sentence length by 24.9%. However, this result is not statistically significant. This relationship could be due to individuals being involved in less severe crimes later in their criminal career so an additional sentence is likily to be smaller then their earlier convictions, thereby lowering the average sentence length. Our final numeric variable is recent unemployment duration. For every one month increase in recent unemployment duration the model predicts a 4% increase in average sentence length. This value is not statistically significant and but the practical significance offers a silver lining in that unemployment history doesn't seem to lead to harsher legal consequences when said individuals are convicted. Our model also includes a race variable where individuals are considered hispanic, black, or neither. Relative to black individuals, being hispanic decreases average sentence length by 43% and being in neither category decreases average sentence length 51.8% relative to black individuals. Suffice to say that black indivuals tend to have the longest sentence length, followed by uncategorized individuals. This indicates that that race plays a role in how individuals experience the criminal justice system, all else equal. However, the adjusted $R^2 = 0.049$ meaning that all of our variables can explain less than 5% of the variation in average sentence length. So we know that despite our statistical significance, our model is far from illustrating the entire picture of an individual's sentence length. 
+
+
+
+
 
 
 
