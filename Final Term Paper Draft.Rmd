@@ -17,6 +17,7 @@ library(wooldridge)
 library(gridExtra)
 library(stargazer)
 library(corrgram)
+library(broom)
 ```
 
 ```{r}
@@ -80,6 +81,7 @@ The histogram shows a strong right hand skew indicating that in order to meet th
 ggplot(df, aes(x = inc86, y = (avgsen))) + 
   xlab("Income") + ylab("Average Sentence Length") + 
   ggtitle("1986 Legal Income and Average Sentence Length") +
+  geom_smooth(method = 'lm') +
   geom_point() + 
   theme_minimal()
 ```
@@ -151,6 +153,7 @@ The histogram indicates that the distribution of th proportion of prior convicti
 ggplot(df, aes(x = pcnv, y = avgsen)) + 
   xlab("Proportion of Prior Convictions and Average Sentence Length") + ylab("Sentence Length in Months") + 
   ggtitle("Prop of Prior Convictions") +
+  geom_smooth(method = 'lm') +
   geom_point() + 
   theme_minimal()
 ```
@@ -173,11 +176,12 @@ The histogram indicates a strong left hand skew in unemployment duration. This i
 ggplot(df, aes(x = (durat), y = (avgsen))) + 
   xlab("Unemployment Duration in Months") + ylab("Average Sentence in Months") + 
   ggtitle("Unemployment and Sentence Length Scatterplot") +
+  geom_smooth(method = 'lm') +
   geom_point() + 
   theme_minimal()
 ```
 
-This scatterplot illustrates a weak association between unemployment length and average sentence length. This trend indicates that longer lengths of unemployment may not necessarily lead to the commiting of harsher crimes or that a history of unemployment leads to harsher punishments when convicted. 
+This scatterplot illustrates a weak positive association between unemployment length and average sentence length. Due too the weakness of the association 
 
 #### Race Comparisons
 
@@ -223,11 +227,68 @@ Including narr86 and nfarr86 not only increases our adjusted $R^2$ by 6 percenta
 
 $$ \widehat{log(Avgsen)} = 2.555 + 0.001(log(inc)) + 0.282(narr86) - 0.424(nfarr86) - 0.495(pcnv) + 0.036(durat) - 0.243(racehisp) - 0.366(racenon) $$
 
-### Model Bias and Robustness
+### Model Assumptions 
                                       
-We will be using Ordinary Least Square (OLS) estimating method to compute the coefficients of our variables. Our model complies with all five of OLS multiple regression assumptions. First, our regression model is linear in parameters, as illustrated by our model above. Additionally, the sampling of the observations was undertaken randomly so we've met that condition as well. The third condition 
+We used an Ordinary Least Square (OLS) estimating method to compute the coefficients of our parameters. Our model complies with all five of OLS multiple regression assumptions. First, our regression model is linear in parameters, as illustrated by our model above. Additionally, the sampling of the observations was undertaken randomly so we've met that condition as well. The third condition is that there's no multicollinearity. Since the independent variables is `r var(df$avgsen)` which is greater than zero and we have no variable repetition or variables that are perfect multiples of each other so we've met this assumption. The next assumption is the zero conditional mean assumption ie $E(u | inc, narr86, nfarr86, pcnv, durat, race) = 0$. We've already added logs to the model where appropriate and since the visualizations of our variables don't indicate a need for quadratics in our model, we can double check our model specificatioon by looking at the model residuals. 
 
-Also, the variance of our independent variables is `r var(df$avgsen)` which is greater than zero, ***what assumption is this***
+```{r}
+reg2C_df <- augment(reg2C)
+ggplot(reg2C_df, aes(x = .fitted, y = .resid)) + 
+  ggtitle("Residuals Plot for Regression 2C") +
+  xlab("Fitted Values") + ylab("Residuals") + 
+  geom_hline(yintercept = 0, colour = "blue") +
+  geom_point() + 
+  theme_minimal()
+```
+
+Since the residuals are randomly distributed above and below the 0 mark we have sufficient evidence to support that this is the correct model specification and have met the. The final assumption is homoskedasticity, in otherwords that $Var(u|inc, narr86, nfarr86, pcnv, durat, race) = \sigma^2$. Our visualizations don't indicate any clear signs of homoskedasticity but to verify this we'll conduct a breusch-pagan test and a white test. The hypothesis test is as follows: $ H_{0}: Var(u|inc, narr86, nfarr86, pcnv, durat, race) = Var(u|X) = \sigma^2$ and the alternative where these values are not equal.
+                
+First we will use the BP test using the F statistic, then White test using F statistic, and both tests using LM ratio. Then, we will discuss the difference in the results they render. Keep in mind that a large F statistic or a large Lagrange multiplier statistic, (LM) indicate a rejection of the null hypothesis. 
+
+```{r}
+# BP test (using F statistics)
+
+summary(lm(reg2C_df$.resid ~ log(inc86) + narr86 + nfarr86 + pcnv + durat + race, df))
+
+```
+
+Using the BP test, we see that our p-value is large (p-value =1) and our F-statistic (F-statistic = 1.919e-30) is small. Consequently, we fail to reject the null hypothesis. This means our unobserved distribution is homoskedastic. Now, we will conduct more testing, but using a White test:
+
+```{r}
+# White test (using F statistic)
+u_hat <- reg2C$residuals
+y_hat <- predict(reg2C)
+
+summary(lm(u_hat^2 ~ y_hat + I(y_hat^2)  ))
+```
+
+The p-value is small is .02499 <.05 and, therefore significant, at the 95% confidence level. Therefore, we have evidence from both tests to suggest we have an issue with heteroskedasticity. Therefore meaning we've failed to meet the 5th Gauss-Markov assumption: the variance of our unobserved variables given our observed explanatory variables is constant (Var(u|x=constant)). Because our unobserved variables are heteroskedastic, OLS is no longer a proper estimating technique unless we  use OLS and correct the standard error and give it a new name, such as robust SE, or we have the option to change the estimation technique. We could use GLS or WLS.  
+
+Below, we compare our previous regression with a new regression that includes robust standard errors. .
+
+```{r}
+
+range(y_hat)
+h_hat <- y_hat *(1-y_hat)
+w   <- 1/(h_hat^2)
+reg2C_wls <- lm(log(avgsen) ~ log(inc86) + narr86 + nfarr86 + pcnv + durat + race, weights = w, df)
+
+stargazer(reg2C, reg2C_wls, type = "text")
+
+```
+
+While there's only a slight difference in $R^2$ values, many of our beta values have changed, indicating that heteroskedasticity did impact our model and that the robust standard errors are appropriate for out analysis. Our final model is: 
+
+$$ \widehat{ log(avgsen)} = 2.563 + 0.009(log(inc86)) + 0.464(narr86) - 0.627(nfarr86) - 0.249(pcnv) + 0.041(durat) - 0.430(racehisp) -0.518(racenon) $$
+
+
+
+
+
+
+
+
+
 
 the expected value of our unobserved variables given our observed explanatory variables is zero (E(u|x) = 0), the variance of our unobserved variables given our observed explanatory variables is constant (Var(u|x=constant)), and the population error (u) is normally distributed with zero mean and variance u ~(Normal (0,σ^2)).Having met the above assumptions, we will run several regression models to ensure that we are actually in compliance with these assumptions. 
 
