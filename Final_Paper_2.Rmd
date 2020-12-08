@@ -130,7 +130,7 @@ The histogram indicates a strong right hand skew in arrests. However, the ordina
 
 ```{r echo=FALSE}
 ggplot(df, aes(x = fnarr86, y = avgsen)) + 
-  xlab("1986 Felony Arrests") + ylab("Average Sentence in Months") + 
+  xlab("Arrests in 1986") + ylab("Average Sentence in Months") + 
   ggtitle("1986 Legal Income and Average Sentence Length") +
   geom_boxplot() + 
   theme_minimal()
