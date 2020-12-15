@@ -66,7 +66,8 @@ ggplot(df, aes(x = avgsen))+
   geom_histogram(binwidth = 5) + 
   theme_minimal()
 ```
-The histogram shows that that the distribution of sentence length is bell shape with a slight right skew indicating that a log might be an appropriate adjustment for our model. However, since there are zero values in the variable a log transformation isn't appropriate. 
+
+The histogram shows that that the distribution of sentence length is rightly skewed indicating that this model is proabably going to have issues with heteroskedasticity and that a log might be an appropriate adjustment for our model. However, since there are zero values in the variable a log transformation isn't appropriate. It also has a range of 58.9 which shows that this paramater has enough varition that we can use it in the model.  
 
 
 ### Income from 1986
