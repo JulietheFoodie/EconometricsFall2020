@@ -34,6 +34,8 @@ df$race <- with(df, ifelse(df$black == 1, "black",
 df$fnfarr86 <- as.factor(df$nfarr86)
 df$fnarr86 <- as.factor(df$narr86)
 
+df$narr86sq <- (df$narr86)^2
+
 ```
 
 
@@ -158,6 +160,7 @@ ggplot(df, aes(x = pcnv, y = avgsen)) +
   geom_smooth(method = 'lm') +
   geom_point() + 
   theme_minimal()
+
 ```
 
 This scatterplot indicates a negative association between prior convictions and sentence length. This indicates that as convictions become more common for an individual, their sentence length decreases. This trend is particularly interesting as it does fit a typically assumption of repeat offenders having harsher punishments. While we can only speculate as to the exact nature of this relationship, its possible that other variables such as the types of crimes committed and/or race have a larger impact on average sentence then we wouldn've prevously thought. That makes this variable an ideal candidate for a multiple regression since we can see how this variable combined with other indicators appropriate predict average sentence length.
@@ -208,39 +211,42 @@ During our exploration of the variables, we found that due to skewness, a few of
 ```{r echo=FALSE}
 
 reg1 <- lm(avgsen ~ (inc86) + narr86 + nfarr86 + pcnv + durat + race, df)
-reg2A <- lm(I(avgsen + avgsen^2) ~ inc86 + narr86 + nfarr86 + pcnv + durat + race, df)
-reg2B <- lm((avgsen) ~ inc86 + narr86 + nfarr86 + I(pcnv + pcnv^2) + durat + race, df)
-reg2C <- lm(I(avgsen + avgsen^2) ~ inc86 + narr86 + nfarr86 + I(pcnv + pcnv^2) + durat + race, df)
+reg2A <- lm((avgsen) ~ inc86 + I(inc86^2) + narr86 + nfarr86 + pcnv + durat + race, df)
+reg2B <- lm(avgsen ~ (inc86) + narr86 + I(narr86^2) + nfarr86 + pcnv + durat + race, df)
+reg2C <- lm(avgsen ~ (inc86) + narr86 + nfarr86 + I(nfarr86^2) + pcnv + durat + race, df)
+reg2D <-  lm((avgsen) ~ inc86 + narr86 + nfarr86 + pcnv + I(pcnv^2) + durat + race, df)
+reg2E <- lm(avgsen  ~ inc86 + narr86 + nfarr86 + pcnv + durat + I(durat^2) + race, df)
 
-stargazer(reg1, reg2A, reg2B, reg2C,  type = "text")
+stargazer(reg1, reg2A, reg2B, reg2C, reg2D, reg2E,  type = "text")
 ```
 
+Since the regressions 2, 3 and 5 all saw an increase in $\bar R^2$ and then we'll compare those and a mulitple combinations to the original next. 
+```{r}
 
-The $R^2$ strongly indicate that our non quadratic model is the best model to work on.  
+reg3A <- lm((avgsen) ~ inc86 + I(inc86^2) + narr86 + I(narr86^2) + nfarr86 + pcnv + durat + race, df)
+reg3B <- lm((avgsen) ~ inc86 + I(inc86^2) + narr86 + nfarr86 + pcnv + I(pcnv^2) + durat + race, df)
+reg3C <- lm(avgsen ~ (inc86) + narr86 + narr86sq + nfarr86 + pcnv + pcnvsq + durat + race, df)
+reg3D <- lm(avgsen ~ (inc86) + I(inc86^2) + narr86 + I(narr86^2) + nfarr86 + I(nfarr86^2) + pcnv + durat + race, df)
 
-Next we'll compare models with and without narr86 and nfarr86 to see if their impact justifies keeping them in the model. 
-
-```{r echo=FALSE}
-reg3 <- lm((avgsen) ~ (inc86) + pcnv + durat + race, df)
-stargazer(reg1, reg3, type = "text")
+stargazer(reg1, reg3A, reg3B, reg3C, reg3D, type = "text")
 ```
+Since the $\bar R^2$ is highest in regression 4 we'll use that model and double check the form later. For now we can consider the following regression our current model
 
-Including narr86 and nfarr86 not only increases our adjusted $R^2$ by 3 percentage points but they are also both statistically significant at the 90% confidence level so we'll keep them in our model. As there is no indication in our scatterplots for a quadratic form, which we'll confirm later, for now we can consider the following regression our current final model
+$$ \widehat{log(Avgsen)} = 22.138 - 0.017(inc) - 2.48(narr86) + 1.22(narr86^2) - 2.495(nfarr86) - 27.502(pcnv) +  20.051(pcnv^2) + 0.206(durat) - 1.423(racehisp) - 3.141(racenon) $$
 
-$$ \widehat{log(Avgsen)} = 2.559 - 0.001(inc) + 0.282(narr86) - 0.428(nfarr86) - 0.488(pcnv) + 0.034(durat) - 0.234(racehisp) - 0.353(racenon) $$
 
 ## Model Assumptions 
                                       
 We used an Ordinary Least Square (OLS) estimating method to compute the coefficients of our parameters. Our model complies with all five of OLS multiple regression assumptions. First, our regression model is linear in parameters, as illustrated by our model above. Additionally, the sampling of the observations was undertaken randomly so we've met that condition as well. The third condition is that there's no multicollinearity. Since the independent variables is `r var(df$avgsen)` which is greater than zero and we have no variable repetition so we just need to check that we have no variables that are perfect multiples of each other 
 
 ```{r echo=FALSE}
-inc86_lm <- lm((inc86) ~ nfarr86 + narr86 + pcnv + durat + race, df)
-nfarr86_lm <- lm(nfarr86 ~ (inc86) + narr86 + pcnv + durat + race, df)
-narr86_lm <- lm(narr86 ~ (inc86) + nfarr86 + pcnv + durat + race, df)
-pcnv_lm <- lm(pcnv ~ (inc86) + nfarr86 + narr86 + durat + race, df)
-durat_lm <- lm (durat ~ (inc86) + nfarr86 + narr86 + pcnv + race, df)
-black_lm <- lm(black ~ inc86 + nfarr86 + narr86 + durat + hispan, df)
-hispan_lm <- lm(hispan ~ inc86 + nfarr86 + narr86 + durat + black, df)
+inc86_lm <- lm((inc86) ~ narr86 + I(narr86^2) + nfarr86 + pcnv + I(pcnv^2) + durat + race, df)
+nfarr86_lm <- lm(nfarr86 ~ inc86 + narr86 + I(narr86^2) + pcnv + I(pcnv^2) + durat + race, df)
+narr86_lm <- lm(narr86 ~ inc86 + I(narr86^2) + nfarr86 + pcnv + I(pcnv^2) + durat + race, df)
+pcnv_lm <- lm(pcnv ~ inc86 + narr86 + I(narr86^2) + nfarr86  + I(pcnv^2) + durat + race, df)
+durat_lm <- lm(durat ~ inc86 + narr86 + I(narr86^2) + nfarr86 + pcnv + I(pcnv^2) + race, df)
+black_lm <- lm(black ~ inc86 + narr86 + I(narr86^2) + nfarr86 + pcnv + I(pcnv^2) + durat + hispan, df)
+hispan_lm <- lm(hispan ~ inc86 + narr86 + I(narr86^2) + nfarr86 + pcnv + I(pcnv^2) + durat + black, df)
 
 # vif(inc86_lm)
 # vif(nfarr86_lm)
@@ -259,8 +265,8 @@ The highest variance inflation factor of all the parameter regressions is 3.5557
 
 
 ```{r echo=FALSE}
-reg1_df <- augment(reg1)
-ggplot(reg1_df, aes(x = .fitted, y = .resid)) + 
+reg3C_df <- augment(reg3C)
+ggplot(reg3C_df, aes(x = .fitted, y = .resid)) + 
   ggtitle("Residuals Plot for Regression") +
   xlab("Fitted Values") + ylab("Residuals") + 
   geom_hline(yintercept = 0, colour = "blue") +
@@ -268,7 +274,15 @@ ggplot(reg1_df, aes(x = .fitted, y = .resid)) +
   theme_minimal()
 ```
 
-Since the residuals are more clustered below. The final assumption is homoskedasticity, in otherwords that $Var(u|inc, narr86, nfarr86, pcnv, durat, race) = \sigma^2$. Our visualizations don't indicate any clear signs of homoskedasticity but to verify this we'll conduct a breusch-pagan test and a white test. The hypothesis test is as follows: $ H_{0}: Var(u|inc, narr86, nfarr86, pcnv, durat, race) = Var(u|X) = \sigma^2$ and the alternative where these values are not equal.
+Since the residuals are more clustered below it indicates we may have violated our assumption. In order to double check we'll perform a RESET. Since our model already contains squared values, we'll do the test both for the powers of 2 and 3
+
+```{r}
+resettest(reg3C, power = 2)
+resettest(reg3C, power = 3)
+```
+
+
+The final assumption is homoskedasticity, in otherwords that $Var(u|inc, narr86, nfarr86, pcnv, durat, race) = \sigma^2$. Our visualizations don't indicate any clear signs of homoskedasticity but to verify this we'll conduct a breusch-pagan test and a white test. The hypothesis test is as follows: $ H_{0}: Var(u|inc, narr86, nfarr86, pcnv, durat, race) = Var(u|X) = \sigma^2$ and the alternative where these values are not equal.
                 
 First we will use the BP test using the F statistic, then White test using F statistic, and both tests using LM ratio. Then, we will discuss the difference in the results they render. Keep in mind that a large F statistic or a large Lagrange multiplier statistic, (LM) indicate a rejection of the null hypothesis. 
 
@@ -276,60 +290,66 @@ First we will use the BP test using the F statistic, then White test using F sta
 # BP test (using F statistics) manually
 #summary(lm(reg2A_df$.resid ~ log(inc86) + narr86 + nfarr86 + pcnv + durat + race, df))
 
-bptest(reg1)
+bptest(reg3C)
 ```
 
 Using the BP test, we see that our p-value is relatively large (p-value = 0.197) meaning that our F-statistic is relatively small. Consequently, we fail to reject the null hypothesis. This means our unobserved distribution is heteroskedastic. Since we failed the bp test we'll also do a white test, it is a less vigorious test for heteroskedasticity. 
 
 ```{r echo = FALSE}
 # White test (using F statistic)
-u_hat <- reg1$residuals
-y_hat <- predict(reg1)
+u_hat <- reg3C$residuals
+y_hat <- predict(reg3C)
 
 summary(lm(u_hat^2 ~ y_hat + I(y_hat^2)  ))
 ```
-We have an F statistic of 2.016 and a p value of 0.1373 >.05. Therefore we fail to reject the null hypothesis indicating we have an issue with heteroskedasticity. Due to the results of the bp and white test we will use robust standard errors to correct for the heteroskedasticity. 
+We have an F statistic of 2.016 and a p value of 0.1373 >.05. Therefore we fail to reject the null hypothesis indicating that despite our earlier concerns, heteroskedasticity is not an issue. Due to the results of the bp and white test won't make any standard error adjustments to our model. 
 
-Below, we compare our previous regression with a new regression that includes robust standard errors. .
-
-```{r echo=FALSE}
-range(y_hat)
-h_hat <- y_hat *(1-y_hat)
-w   <- 1/(h_hat^2)
-reg1_wls <- lm((avgsen) ~ (inc86) + narr86 + nfarr86 + pcnv + durat + race, weights = w, df)
-
-stargazer(reg1, reg1_wls, type = "text")
-
-```
-
-Not only is there an increase in the adjusted $R^2$ by .025 points, we also have three additional statistically significant variables: narr86, nfarr86, racenon. Due to this output and the results of the robustness tests, we'll utalise the equation with the robust standard errors. In that equation there are three numeric equations that are not statistically significant. In order to determine whether or not they should be in our model we need to determine whether or not they are jointly significant with the following hypothesis test with an F distribution. 
-
-$$H_{0}: inc86 = 0, pcnv = 0, durat = 0$$
-$$H_{1}: inc86 \neq 0, pcnv \neq 0, durat \neq 0 $$
-
-```{r echo=FALSE}
-reg4_wls <- lm((avgsen) ~  narr86 + nfarr86 + race, weights = w, df)
-
-Ho_joint <- c("inc86 = 0", "pcnv = 0", "durat = 0")
-linearHypothesis(reg1, Ho_joint)
-```
-
-The results of the hyothesis test has a low F value of 2.1274 with ap value of 0.1 which indicates that these values are not jointly significant so we'll remove those variables from our model, we can see the comparison with the removed variables here
 
 ```{r}
-stargazer(reg1_wls, reg4_wls, type = "text")
+stargazer(reg3C, type = "text")
+```
+
+
+
+$$H_{0}: inc86 = 0, narr86 = 0, narr86^2 = 0, nfarr86 = 0, durat = 0$$
+$$H_{1}: inc86 \neq 0, narr86 \neq 0, narr86^2 \neq, nfarr \neq, pcnv \neq 0, pcnv^2 \neq 0, durat \neq 0 $$
+
+```{r echo=FALSE}
+
+
+
+Ho_joint <- c("inc86 = 0", "narr86 = 0", "narr86sq = 0", "nfarr86 = 0", "durat = 0", "racehisp = 0", "racenon = 0")
+linearHypothesis(reg3C, Ho_joint)
+
+
+```
+
+The results of the hyothesis test has a low F value of 1.1142 with ap value of 0.3563 which indicates that these values are not jointly significant so we'll remove those variables from our model, we can see the comparison with the removed variables here
+
+
+```{r}
+reg4 <- lm(avgsen ~  pcnv + pcnvsq, df)
+
+stargazer(reg3C, reg4, type = "text")
 ```
  
-By removing the variables we've increased the adjusted $R^2$ and our F statistic indicating that this is the appropriate approach. So our final model is 
-
-$$ \widehat{ log(avgsen)} = 13.969  + 4.838(narr86) - 6.085(nfarr86) - 2.78(racehisp) - 2.9(racenon) $$
 
 
-## Model Interpretation and Implication
+
+$$ \widehat{ avgsen} = 20.197 -29.332(pcnv) + 22.040(pcnv)^2 $$
+
+
+## Model Interpretation and Implication REDO
 
 For every additional arrest an individual has, are model suggests an increase in average sentence length by 4.8 months. This result is statistically significant at the 99% confidence level but more importantly it has practical significantin that it supports the understanding that those under frequent suspicion tend to experience more prison time even if those arrests don't lead to jailtime. The next variable has an unexpected association. Every additional felony arrest, our model suggests a 6.1 month decrease in average sentence length. This result is also statistically significant at the 99% confidence level. This result could stem from felonies having harsher punishments which encourages individuals to fight those charges harder in order to have a shorter sentence. Our model also includes dummy variables for race where individuals are considered hispanic, black, or neither. Relative to black individuals, being hispanic decreases average sentence length by 2.8 months and being in neither category decreases average sentence length 2.9 relative to black individuals. Suffice to say that black indivuals tend to have the longest sentences, but its particularly interesting that hispanic and non black/non hispanic individuals are only seperated by about three days difference in average sentencing. This indicates that that race plays a role in how individuals experience the criminal justice system, particularly for those of african heritage. However, the adjusted $R^2 = 0.06$ meaning that our variables can explain only 6% of the variation in average sentence length. So we know that despite our model being statistically significant at the 95% confidence lever, it is far from illustrating the entire story of an individual's average sentence length. 
 
 ## Conlcusion 
 
+In conclusion, to answer our focus question, we cannot conclusively say that income has an affect on average sentencing for two reasons. First, the income coefficient was statistically insignificant. Second, our graph shows that income and average sentencing have a very small correlation. This may have been unexpected, but it is worth mentioning that our surveyed males were young adults who are 25-years-old and with low income and a prior arrest history. This makes their employment prospects grim and explains their low income. We know that if we include older males of different ages and with different income levels and no criminal history, we can see that income would in fact have an impact on average sentencing. 
 
+In addition, looking at other key questions examined in this paper, we could say that the prior arrest ratio and recent unemployment variables were statistically insignificant, both individually and jointly. Our joint hypothesis proved that income, prior arrest ratio, and recent employment variables to be statistically insignificant, therefore their betas are unreliable.  Consequently, we cannot say anything about whether recent unemployment and prior arrest ratio have an impact on average sentencing. Lastly, it was expected that an individual with prior arrest would have a higher average sentence. This coefficient is statistically significant. Conversely, we did not expect an individual with a felony conviction to have a lower average sentence. This coefficient is statistically significant at the 1% level. However, our explanation is that people who are convicted of a felony crime tend to put up a legal fight and, as a result, it leads them to getting a smaller average sentence.
+
+Additionally, we ended up dropping income, unemployment status, and the arrest ratio variables from our model. This helped render a higher adjusted R squared and improved the overall relationship between our explanatory variables and the dependent variable. We kept the race, prior arrest, and felony convictions due to their statistical significance. What is interesting is the race question. It turns out that blacks fared worse than Hispanics and other races. Our regression model rendered a statistically significant coefficient that ties blacks’ disadvantage in average sentencing. In contrast, Hispanics tended to fare better than blacks. However, other races fared better than both of them.
+
+Finally, our econometric examination throughout the paper imparts some lessons our policy makers and researchers could glean to improve criminal justice reform and policy making. We can say that blacks are disadvantaged more than Hispanics and other races. Given this point, they must use this finding to propose and implement better criminal justice policies, and help close the gap in discrimination toward blacks. For our nation to envision its prosperous future and for us to help make it “a more perfect union” as the founders admonished, it is critical that they address discrimination against blacks in the criminal justice system.
 
