@@ -207,7 +207,7 @@ The boxplots of average sentence length show minmimal variation accross differen
 
 Since we're considering eliminating two of the variables, it's important we include them in our models until we've determined the best form for the other variables in our model. 
 
-During our exploration of the variables, we found that due to skewness, a few of our variables could benefit from logs. However, since there are zero values in all of our variables this isn't an option. However, just to be safe we'll compare a variatey of quadratic functions on the variables that weren't as skewed to see if it improves our model. 
+During our exploration of the variables, we found that due to skewness, a few of our variables could benefit from logs. However, since there are zero values in all of our variables this isn't an option. In order to be safe we'll compare a variatey of quadratic functions on the variables that weren't as skewed to see if it improves our model. 
 
 ```{r echo=FALSE}
 
@@ -222,6 +222,7 @@ stargazer(reg1, reg2A, reg2B, reg2C, reg2D, reg2E,  type = "text")
 ```
 
 Since the regressions 2, 3 and 5 all saw an increase in $\bar R^2$ and then we'll compare those and a mulitple combinations to the original next. 
+
 ```{r}
 
 reg3A <- lm((avgsen) ~ inc86 + I(inc86^2) + narr86 + I(narr86^2) + nfarr86 + pcnv + durat + race, df)
@@ -249,25 +250,20 @@ durat_lm <- lm(durat ~ inc86 + narr86 + I(narr86^2) + nfarr86 + pcnv + I(pcnv^2)
 black_lm <- lm(black ~ inc86 + narr86 + I(narr86^2) + nfarr86 + pcnv + I(pcnv^2) + durat + hispan, df)
 hispan_lm <- lm(hispan ~ inc86 + narr86 + I(narr86^2) + nfarr86 + pcnv + I(pcnv^2) + durat + black, df)
 
-# vif(inc86_lm)
-# vif(nfarr86_lm)
-# vif(narr86_lm)
-# vif(pcnv_lm)
-# vif(durat_lm)
-# vif(black_lm)
-# vif(hispan_lm)
-
 vif_list <- list(vif(inc86_lm), vif(nfarr86_lm), vif(narr86_lm), vif(pcnv_lm), vif(durat_lm), vif(black_lm), vif(hispan_lm) )
 names(vif_list) <- c("Regress on inc86", "Regress on nfarr86", "Regress on narr86", "Regress on pcnv", "Regress on durat", "Regress on Black", "Regress on Hispanic")
 vif_list
 ```
+For our vif output, values between 1 and 5 are considered moderately correlated while values greater than 5 near perfect collinearity. From the output we can see there's strong correlation between inc86 and narr86, because of this we need to remove one of the variables entirely from the regression. Since we're focused oon jail time and non felony arrests can lead to prison time so we're going to eliminate nfarr86 and keep narr86 and its square. 
 
-The highest variance inflation factor of all the parameter regressions is 3.555754 while most are between one and two. Values between 1 and 5 are considered moderately correlated while values greater than 5 near perfect collinearity. Since our strongest correlation is a moderate correlation we've shown there's no multicollinearity and we've met this assumption. The next assumption is the zero conditional mean assumption ie $E(u | inc, narr86, nfarr86, pcnv, durat, race) = 0$. We've already added logs to the model where appropriate and since the visualizations of our variables don't indicate a need for quadratics in our model, we can double check our model specificatioon by looking at the model residuals. 
+Otherwise the highest variance inflation factor of all the parameter regressions is 3.555754 while most are between one and two.  Since our strongest correlation is a moderate correlation we've shown there's no multicollinearity and we've met this assumption. The next assumption is the zero conditional mean assumption ie $E(u | inc, narr86, nfarr86, pcnv, durat, race) = 0$. We've already added logs to the model where appropriate and since the visualizations of our variables don't indicate a need for quadratics in our model, we can double check our model specificatioon by looking at the model residuals. 
 
 
 ```{r echo=FALSE}
-reg3C_df <- augment(reg3C)
-ggplot(reg3C_df, aes(x = .fitted, y = .resid)) + 
+reg4 <- lm(avgsen ~ (inc86) + narr86 + narr86sq + pcnv + pcnvsq + durat + race, df)
+
+reg4_df <- augment(reg4)
+ggplot(reg4_df, aes(x = .fitted, y = .resid)) + 
   ggtitle("Residuals Plot for Regression") +
   xlab("Fitted Values") + ylab("Residuals") + 
   geom_hline(yintercept = 0, colour = "blue") +
@@ -275,12 +271,14 @@ ggplot(reg3C_df, aes(x = .fitted, y = .resid)) +
   theme_minimal()
 ```
 
-Since the residuals are more clustered below it indicates we may have violated our assumption. In order to double check we'll perform a RESET. Since our model already contains squared values, we'll do the test both for the powers of 2 and 3
+Since the residuals are more clustered below it indicates we may have violated our assumption. In order to double check we'll perform a RESET. 
 
 ```{r}
-resettest(reg3C, power = 2)
-resettest(reg3C, power = 3)
+resettest(reg1, power = 2)
+resettest(reg4, power = 2)
+
 ```
+The RESET test indicates that we can reject the null hypothesis at the 90% confidence level but not at the 95% confidence level. Normally we'd rework the model but since we already know that logs are likely needed for an ideal model and we know from the RESET test on reg1 that our model has improved so we'll keep reg4 as is. 
 
 
 The final assumption is homoskedasticity, in otherwords that $Var(u|inc, narr86, nfarr86, pcnv, durat, race) = \sigma^2$. Our visualizations don't indicate any clear signs of homoskedasticity but to verify this we'll conduct a breusch-pagan test and a white test. The hypothesis test is as follows: $ H_{0}: Var(u|inc, narr86, nfarr86, pcnv, durat, race) = Var(u|X) = \sigma^2$ and the alternative where these values are not equal.
@@ -291,62 +289,77 @@ First we will use the BP test using the F statistic, then White test using F sta
 # BP test (using F statistics) manually
 #summary(lm(reg2A_df$.resid ~ log(inc86) + narr86 + nfarr86 + pcnv + durat + race, df))
 
-bptest(reg3C)
+bptest(reg4)
 ```
 
-Using the BP test, we see that our p-value is relatively large (p-value = 0.197) meaning that our F-statistic is relatively small. Consequently, we fail to reject the null hypothesis. This means our unobserved distribution is heteroskedastic. Since we failed the bp test we'll also do a white test, it is a less vigorious test for heteroskedasticity. 
+Using the BP test, we see that our p-value is relatively large (p-value = 0.197) meaning that our F-statistic is relatively small. Consequently, we fail to reject the null hypothesis. This indicates that heteroskedasticity isn't a concern. However, in order to be thorough we'll also run a white test which is a less rigouros test for homoskedasticity. 
 
 ```{r echo = FALSE}
 # White test (using F statistic)
-u_hat <- reg3C$residuals
-y_hat <- predict(reg3C)
+u_hat <- reg4$residuals
+y_hat <- predict(reg4)
 
 summary(lm(u_hat^2 ~ y_hat + I(y_hat^2)  ))
 ```
-We have an F statistic of 2.016 and a p value of 0.1373 >.05. Therefore we fail to reject the null hypothesis indicating that despite our earlier concerns, heteroskedasticity is not an issue. Due to the results of the bp and white test won't make any standard error adjustments to our model. 
+We have an F statistic of 1.211 and a p value of 0.3012 >.05. Therefore we fail to reject the null hypothesis indicating that despite our earlier concerns, heteroskedasticity is not an issue. Due to the results of the bp and white test won't make any standard error adjustments to our model. 
 
+The regression as it stands now is 
 
 ```{r}
-stargazer(reg3C, type = "text")
+stargazer(reg4, type = "text")
 ```
 
+$$ \widehat{log(Avgsen)} = 22.396 - 0.017(inc) - 4.089(narr86) + 1.217(narr86^2) - 28.877(pcnv) +  21.256(pcnv^2) + 0.184(durat) - 0.908(racehisp) - 3.127(racenon) $$
+From the regression 4 output we can see our constant, pcnv and narr86 are all statistically significant. In order to determine if we should include the statistically insignificant variables we'll run a hypothesis test with the following null and alternative. 
 
+$$H_{0}: inc86 = 0, durat = 0, racehisp = 0, racenon = 0$$
+$$H_{1}: inc86 \neq 0, durat \neq 0, racehisp \neq 0, racenon \neq 0 $$
 
-$$H_{0}: inc86 = 0, narr86 = 0, narr86^2 = 0, nfarr86 = 0, durat = 0$$
-$$H_{1}: inc86 \neq 0, narr86 \neq 0, narr86^2 \neq, nfarr \neq, pcnv \neq 0, pcnv^2 \neq 0, durat \neq 0 $$
+While $narr86^2$ is statistically insignificant we haven't included it in the our test given that $narr86$ is statistically significant and we already know that including the square is the correct form. 
 
 ```{r echo=FALSE}
 
-
-
-Ho_joint <- c("inc86 = 0", "narr86 = 0", "narr86sq = 0", "nfarr86 = 0", "durat = 0", "racehisp = 0", "racenon = 0")
-linearHypothesis(reg3C, Ho_joint)
+Ho_joint <- c("inc86 = 0", "durat = 0", "racehisp = 0", "racenon = 0")
+linearHypothesis(reg4, Ho_joint)
 
 
 ```
 
-The results of the hyothesis test has a low F value of 1.1142 with ap value of 0.3563 which indicates that these values are not jointly significant so we'll remove those variables from our model, we can see the comparison with the removed variables here
+The results of the hyothesis test has a low F value of 1.3214 with a p value of 0.32657 which indicates that these values are not jointly significant so we'll remove those variables from our model, we can see the comparison with the removed variables here
 
 
 ```{r}
-reg4 <- lm(avgsen ~  pcnv + pcnvsq, df)
+reg5 <- lm(avgsen ~  narr86 + narr86sq + pcnv + pcnvsq, df)
+reg6 <- lm(avgsen ~  pcnv + pcnvsq, df)
 
-stargazer(reg3C, reg4, type = "text")
+stargazer(reg4, reg5, reg6, type = "text")
 ```
  
-
-
+ Since narr86 becomes statstically insignificant in when the other variables are removed, we can attribute the statistical significance to mere noise in our data. Indicating our best regression is the following. 
 
 $$ \widehat{ avgsen} = 20.197 -29.332(pcnv) + 22.040(pcnv)^2 $$
+Since this equation is univariate, I'll also include a graphic 
+
+```{r}
+x <- 0:1
+dat <- data.frame(x, y = 20.197 - 29.332*x + 22.040*x^2)
+f <- function(x) 20.197 - 29.332*x + 22.040*x^2
+ggplot(dat, aes(x,y)) + 
+  ggtitle("Estminated Relationship from Regression Six") +
+  xlab("Propotion of Prior Convictions") +
+  ylab("Average Sentence Length") +
+    geom_point() +
+    stat_function(fun=f, colour="red")
+```
 
 
-## Model Interpretation and Implication REDO
+## Model Interpretation and Implication 
 
-For every additional arrest an individual has, are model suggests an increase in average sentence length by 4.8 months. This result is statistically significant at the 99% confidence level but more importantly it has practical significantin that it supports the understanding that those under frequent suspicion tend to experience more prison time even if those arrests don't lead to jailtime. The next variable has an unexpected association. Every additional felony arrest, our model suggests a 6.1 month decrease in average sentence length. This result is also statistically significant at the 99% confidence level. This result could stem from felonies having harsher punishments which encourages individuals to fight those charges harder in order to have a shorter sentence. Our model also includes dummy variables for race where individuals are considered hispanic, black, or neither. Relative to black individuals, being hispanic decreases average sentence length by 2.8 months and being in neither category decreases average sentence length 2.9 relative to black individuals. Suffice to say that black indivuals tend to have the longest sentences, but its particularly interesting that hispanic and non black/non hispanic individuals are only seperated by about three days difference in average sentencing. This indicates that that race plays a role in how individuals experience the criminal justice system, particularly for those of african heritage. However, the adjusted $R^2 = 0.06$ meaning that our variables can explain only 6% of the variation in average sentence length. So we know that despite our model being statistically significant at the 95% confidence lever, it is far from illustrating the entire story of an individual's average sentence length. 
+Since regression 4 and regression 6 are statistically significant, we can still offer interpretive results of each variable with the caveat that the values are not statistically significant. Regression 4 predicts that for every \$100 increase in income theres a decrease in average prison sentence of 0.017 months. This is not only statistically insignificant but also practically insignificant as 0.017 months corresponds to less than a day. Since narr86 is a quadratic variable we need to solve the derivative of the quadratic is $-4.089 + 2.434narr86 = 0$ so $narr86 = 1.68$ and find the derivative which is positive. The solutions to our quadratic is 0 and `r 4.089/ 1.217`, indicating that narr86 and avgsen has a relationship that is increasing at a decreasing rate when $narr96 < 1.68$ but it has decreasing at increasing rate when $narr96 > 1.68$. These results indicat that the first 2 arrests increase average sentence length but arrests beyond the third decrease average sentence length which implies that individuals recieve lesser punishments for multiple arrests which is surprising given the expectations for harsher punishments for repeat offenders. However, since the result isn't statistically significant, we should let this result affect our judgement. 
 
-## Conlcusion 
+Model four also provides an estimation for durat, for every one month increase in unemployment duration theres a 0.184 month increase in average sentence length. 0.184 corresponds to less than a week which is still of little practical significance as well as the statistical insignificance. Regression 4 also contains variables for measuring race. We have hispanic and non black, non hispanic individuals which are interpreted relative to black individuals. Hispanic individuals have an estimated average sentence 0.908 months less than black individuals and non black and non hispanic individuals have an estimated averagee sentence length 3.127 months less than black individuals. While these variables aren't statistically significant relationship, the results correspond to what we'd expect through both typical descrimination practices and crime trends by race. In other words, there are multiple explanations for why black individals have the longest average sentence length while non black non hispanic individuals have the lowest length. Next, we'll focus on our final regression with the statistically significant results. Like narr86 before, pcnv (proportion of prior convictions) is quadratic so we will need to solve the quadratic and calculate the derivative. Since pcnv is the only variable in this regression we'll include the constant when solving our regression. The derivative of this regression is $-29.332 + 44.08(pcnv) = 0$ so $ pcnv = 0.665 $. For $pcnv < 0.665$, pcnv and average sentence have a decreasing at an increasing rate but when $ pcnv > 0.665 $, pcnv and average sentence have a relationship that is increasing at an increasing rate. This implies that when conviction is less likely average sentence length decreases but when convictions are more probable, average sentence length is higher. While this is statistically significant, this fits as we'd expect that individuals who are arrested with higher liklihood of conviction are more likly to have convictions that lead to higher sentence length. 
 
-In conclusion, to answer our focus question, we cannot conclusively say that income has an affect on average sentencing for two reasons. First, the income coefficient was statistically insignificant. Second, our graph shows that income and average sentencing have a very small correlation. This may have been unexpected, but it is worth mentioning that our surveyed males were young adults who are 25-years-old and with low income and a prior arrest history. This makes their employment prospects grim and explains their low income. We know that if we include older males of different ages and with different income levels and no criminal history, we can see that income would in fact have an impact on average sentencing. 
+In regards to our focus question, we cannot say that income has an affect on average sentencing for two reasons. First, the income coefficient was statistically insignificant. Second, our graph shows that income and average sentencing have a very small correlation. This may have been unexpected, but it is worth mentioning that our surveyed males were young adults who are 25-years-old and with low income and a prior arrest history. This makes their employment prospects grim and explains their low income. We know that if we include older males of different ages and with different income levels and no criminal history, we can see that income would in fact have an impact on average sentencing. 
 
 In addition, looking at other key questions examined in this paper, we could say that the prior arrest ratio and recent unemployment variables were statistically insignificant, both individually and jointly. Our joint hypothesis proved that income, prior arrest ratio, and recent employment variables to be statistically insignificant, therefore their betas are unreliable.  Consequently, we cannot say anything about whether recent unemployment and prior arrest ratio have an impact on average sentencing. Lastly, it was expected that an individual with prior arrest would have a higher average sentence. This coefficient is statistically significant. Conversely, we did not expect an individual with a felony conviction to have a lower average sentence. This coefficient is statistically significant at the 1% level. However, our explanation is that people who are convicted of a felony crime tend to put up a legal fight and, as a result, it leads them to getting a smaller average sentence.
 
