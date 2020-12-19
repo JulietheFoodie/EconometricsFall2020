@@ -80,7 +80,7 @@ ggplot(df, aes(x = inc86))+
   theme_minimal()
 ```
 
-The histogram shows a strong right hand skew indicating that in order to meet the linear parameters assumption, we will need to take the log of the variable. However, since there are so many 0 values we won't be transforming the data Next we need to visualize the relationship between the income and average sentence length. 
+The histogram shows a strong right hand skew indicating that in order to meet the linear parameters assumption, we will want to take the log of the variable. However, since there are so many 0 values we again can't use a log model which we would like to. Also something else to note is that because of all the zero variables, we know that there is a lot of no income or illegal income in our model. Because these are men with one or more arrest on record, we can assume that it is hard for them to find a legal job and may drive them to commit another crime. This would be for another researcher to dive more into if that is truly the case. Next we need to visualize the relationship between the income and average sentence length. 
 
 ```{r echo=FALSE}
 ggplot(df, aes(x = inc86, y = (avgsen))) + 
@@ -91,7 +91,7 @@ ggplot(df, aes(x = inc86, y = (avgsen))) +
   theme_minimal()
 ```
 
-The model indicates a week negative association between the income variable and the sentence variable. Due to this, we shouldn't expect a strong impact of this variable in our model. 
+The model indicates a weak negative association between the income variable and the sentence variable. With all the zero values an issue we may see is that there isn't enough variables in the higher income levels, making it hard to see a correlation in our regressions. Due to this, we shouldn't expect a strong impact of this variable in our model. 
 
 ### Felony arresting 
 
@@ -103,7 +103,7 @@ ggplot(df, aes(x = nfarr86)) +
   theme_minimal()
 ```
 
-The histogram indicates a strong right hand skew in felony arrests. However, the ordinal nature of the data makes it unideal for a multiple regression model. 
+The histogram indicates a strong right hand skew in felony arrests. However, the ordinal nature of the data makes it unideal for a multiple regression model. Again we also see that there are quite a few zero valuables making our lives harder in that we can't use the log variables we would like to. The amount of zero values means that there isn't very many people commiting felonies and its mostly smaller crimes.
 
 
 ```{r echo=FALSE}
@@ -116,7 +116,7 @@ ggplot(df, aes(x = fnfarr86, y = avgsen)) +
 
 ```
 
-The side by side boxplots illustrates that amoung the average sentence length for each number of felony arrests has essentially no association on average. Due to this and the ordinal nature of the variable we should consider removing this variable from our model.  
+The side by side boxplots illustrates that amoung the average sentence length for each number of felony arrests has a small negitive association. This is suprising because we would expect sentence length to get bigger the more times they've been arrested for felonies. This might suggest that there are some people that know the system well and know how to get smaller sentence legth.  
 
 ### Number of Arrests in 1986
 
@@ -128,7 +128,7 @@ ggplot(df, aes(x = narr86)) +
   theme_minimal()
 ```
 
-The histogram indicates a strong right hand skew in arrests. However, the ordinal nature of the data makes it again unideal for a multiple regression model. 
+The histogram indicates a strong right hand skew in arrests. Again we have the problem of all the zero variables in the model, which means we can't use log transformation in the model. These zero variables means that there isn't a repeat offender trend that some people might expect to see here. 
 
 
 ```{r echo=FALSE}
@@ -140,7 +140,7 @@ ggplot(df, aes(x = fnarr86, y = avgsen)) +
 
 ```
 
-Again, he side by side boxplots indicates that amoung the average sentence length for each number of arrests there is essentially no association. While the average sentence for those with 4 felony arrests is higher than the rest, this is merely one data point and as it does not imply an overall trend in the data it's unlikely to be influencial in our model. Due to this and the ordinal nature of the variable we should consider removing this variable from our model.
+The side by side boxplots indicates that amoung the average sentence length for each number of arrests there is essentially no association. While the average sentence for those with 4 felony arrests is higher than the rest, this is merely one data point and as it does not imply an overall trend in the data it's unlikely to be influencial in our model. Due to this and the ordinal nature of the variable we should consider removing this variable from our model.
 
 ### Proportion of prior convictions 
 
@@ -152,7 +152,7 @@ ggplot(df, aes(x = pcnv)) +
   theme_minimal()
 ```
 
-The histogram indicates that the distribution of th proportion of prior convictions is approximately normal, indicating that this variable is a good candidate for use in a multiple regression model. 
+The histogram indicates that the distribution of the proportion of prior convictions is approximately normal, indicating that this variable is a good candidate for use in a multiple regression model.
 
 ```{r echo=FALSE}
 ggplot(df, aes(x = pcnv, y = avgsen)) + 
@@ -169,6 +169,7 @@ This scatterplot indicates a negative association between prior convictions and 
 ### Duration of Unemployment
 
 ```{r echo=FALSE}
+summary(crime1$durat)
 ggplot(df, aes(x = (durat))) + 
   xlab("Duration in Months") + ylab("Count") + 
   ggtitle("Histogram of Unemployment Duration") +
@@ -176,7 +177,7 @@ ggplot(df, aes(x = (durat))) +
   theme_minimal()
 ```
 
-The histogram indicates a strong left hand skew in unemployment duration. This indicates that a logarithmic model might be more appropriate for this variable, however since we have zero values in our data a log isn't appropriate. The measurement unit for duration of unemployment is not given in our data set but since all the other time variables are measured in months we're assuming that here as well. 
+The histogram indicates a strong left hand skew in unemployment duration. This indicates that a logarithmic model might be more appropriate for this variable, however since we have zero values in our data a log isn't appropriate. The measurement unit for duration of unemployment is not given in our data set but since all the other time variables are measured in months we're assuming that here as well. This variable means that a lot of the unemployment for these people have been recent which is an interesting trend to make note of. 
 
 ```{r echo=FALSE}
 ggplot(df, aes(x = (durat), y = (avgsen))) + 
@@ -187,7 +188,7 @@ ggplot(df, aes(x = (durat), y = (avgsen))) +
   theme_minimal()
 ```
 
-This scatterplot illustrates a weak positive association between unemployment length and average sentence length. Due too the weakness of the association 
+This scatterplot illustrates a weak positive association between unemployment length and average sentence length. Due too the weakness of the association we don't expect a high t-statistic for this equation.
 
 ### Race Comparisons
 
@@ -201,7 +202,7 @@ ggplot(df, aes(x = race, y = avgsen)) +
 
 ```
 
-The boxplots of average sentence length show minmimal variation accross different racial categories. This indicates that even if there is a statistical significance between the regressions, it is likely of little practical significance. However, since race is a major point in our research question we'll keep this variable in our regression.  
+The boxplots of average sentence length show a small skew towards the non variable in the regression. This indicates that there is a slight racial bais in our data, which we will try and explore more in our regression analysis.
 
 ## Model Specification 
 
@@ -254,7 +255,7 @@ vif_list <- list(vif(inc86_lm), vif(nfarr86_lm), vif(narr86_lm), vif(pcnv_lm), v
 names(vif_list) <- c("Regress on inc86", "Regress on nfarr86", "Regress on narr86", "Regress on pcnv", "Regress on durat", "Regress on Black", "Regress on Hispanic")
 vif_list
 ```
-For our vif output, values between 1 and 5 are considered moderately correlated while values greater than 5 near perfect collinearity. From the output we can see there's strong correlation between inc86 and narr86, because of this we need to remove one of the variables entirely from the regression. Since we're focused oon jail time and non felony arrests can lead to prison time so we're going to eliminate nfarr86 and keep narr86 and its square. 
+For our vif output, values between 1 and 5 are considered moderately correlated while values greater than 5 near perfect collinearity. From the output we can see there's strong correlation between inc86 and narr86, because of this we need to remove one of the variables entirely from the regression. Since we're focused on jail time and non felony arrests can lead to prison time so we're going to eliminate nfarr86 and keep narr86 and its square. 
 
 Otherwise the highest variance inflation factor of all the parameter regressions is 3.555754 while most are between one and two.  Since our strongest correlation is a moderate correlation we've shown there's no multicollinearity and we've met this assumption. The next assumption is the zero conditional mean assumption ie $E(u | inc, narr86, nfarr86, pcnv, durat, race) = 0$. We've already added logs to the model where appropriate and since the visualizations of our variables don't indicate a need for quadratics in our model, we can double check our model specificatioon by looking at the model residuals. 
 
@@ -292,7 +293,7 @@ First we will use the BP test using the F statistic, then White test using F sta
 bptest(reg4)
 ```
 
-Using the BP test, we see that our p-value is relatively large (p-value = 0.197) meaning that our F-statistic is relatively small. Consequently, we fail to reject the null hypothesis. This indicates that heteroskedasticity isn't a concern. However, in order to be thorough we'll also run a white test which is a less rigouros test for homoskedasticity. 
+Using the BP test, we see that our p-value is relatively large (p-value = 0.6202) meaning that our F-statistic is relatively small. Consequently, we fail to reject the null hypothesis. This indicates that heteroskedasticity isn't a concern. However, in order to be thorough we'll also run a white test which is a less rigouros test for homoskedasticity. 
 
 ```{r echo = FALSE}
 # White test (using F statistic)
@@ -357,7 +358,7 @@ ggplot(dat, aes(x,y)) +
 
 Since regression 4 and regression 6 are statistically significant, we can still offer interpretive results of each variable with the caveat that the values are not statistically significant. Regression 4 predicts that for every \$100 increase in income theres a decrease in average prison sentence of 0.017 months. This is not only statistically insignificant but also practically insignificant as 0.017 months corresponds to less than a day. Since narr86 is a quadratic variable we need to solve the derivative of the quadratic is $-4.089 + 2.434narr86 = 0$ so $narr86 = 1.68$ and find the derivative which is positive. The solutions to our quadratic is 0 and `r 4.089/ 1.217`, indicating that narr86 and avgsen has a relationship that is increasing at a decreasing rate when $narr96 < 1.68$ but it has decreasing at increasing rate when $narr96 > 1.68$. These results indicat that the first 2 arrests increase average sentence length but arrests beyond the third decrease average sentence length which implies that individuals recieve lesser punishments for multiple arrests which is surprising given the expectations for harsher punishments for repeat offenders. However, since the result isn't statistically significant, we should let this result affect our judgement. 
 
-Model four also provides an estimation for durat, for every one month increase in unemployment duration theres a 0.184 month increase in average sentence length. 0.184 corresponds to less than a week which is still of little practical significance as well as the statistical insignificance. Regression 4 also contains variables for measuring race. We have hispanic and non black, non hispanic individuals which are interpreted relative to black individuals. Hispanic individuals have an estimated average sentence 0.908 months less than black individuals and non black and non hispanic individuals have an estimated averagee sentence length 3.127 months less than black individuals. While these variables aren't statistically significant relationship, the results correspond to what we'd expect through both typical descrimination practices and crime trends by race. In other words, there are multiple explanations for why black individals have the longest average sentence length while non black non hispanic individuals have the lowest length. Next, we'll focus on our final regression with the statistically significant results. Like narr86 before, pcnv (proportion of prior convictions) is quadratic so we will need to solve the quadratic and calculate the derivative. Since pcnv is the only variable in this regression we'll include the constant when solving our regression. The derivative of this regression is $-29.332 + 44.08(pcnv) = 0$ so $ pcnv = 0.665 $. For $pcnv < 0.665$, pcnv and average sentence have a decreasing at an increasing rate but when $ pcnv > 0.665 $, pcnv and average sentence have a relationship that is increasing at an increasing rate. This implies that when conviction is less likely average sentence length decreases but when convictions are more probable, average sentence length is higher. While this is statistically significant, this fits as we'd expect that individuals who are arrested with higher liklihood of conviction are more likly to have convictions that lead to higher sentence length. 
+Model four also provides an estimation for durat, for every one month increase in unemployment duration theres a 0.184 month increase in average sentence length. 0.184 corresponds to less than a week which is still of little practical significance as well as the statistical insignificance. Regression 4 also contains variables for measuring race. We have hispanic and non black, non hispanic individuals which are interpreted relative to black individuals. Hispanic individuals have an estimated average sentence 0.908 months less than black individuals and non black and non hispanic individuals have an estimated average sentence length 3.127 months less than black individuals. While these variables aren't statistically significant relationship, the results correspond to what we'd expect through both typical descrimination practices and crime trends by race. In other words, there are multiple explanations for why black individals have the longest average sentence length while non black non hispanic individuals have the lowest length. Next, we'll focus on our final regression with the statistically significant results. Like narr86 before, pcnv (proportion of prior convictions) is quadratic so we will need to solve the quadratic and calculate the derivative. Since pcnv is the only variable in this regression we'll include the constant when solving our regression. The derivative of this regression is $-29.332 + 44.08(pcnv) = 0$ so $ pcnv = 0.665 $. For $pcnv < 0.665$, pcnv and average sentence have a decreasing at an increasing rate but when $ pcnv > 0.665 $, pcnv and average sentence have a relationship that is increasing at an increasing rate. This implies that when conviction is less likely average sentence length decreases but when convictions are more probable, average sentence length is higher. While this is statistically significant, this fits as we'd expect that individuals who are arrested with higher liklihood of conviction are more likly to have convictions that lead to higher sentence length. 
 
 In regards to our focus question, we cannot say that income has an affect on average sentencing for two reasons. First, the income coefficient was statistically insignificant. Second, our graph shows that income and average sentencing have a very small correlation. This may have been unexpected, but it is worth mentioning that our surveyed males were young adults who are 25-years-old and with low income and a prior arrest history. This makes their employment prospects grim and explains their low income. We know that if we include older males of different ages and with different income levels and no criminal history, we can see that income would in fact have an impact on average sentencing. 
 
